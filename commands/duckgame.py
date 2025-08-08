@@ -390,5 +390,5 @@ class DuckGame(commands.Cog):
 
 
 # Expose setup for bot integration
-async def setup(bot: commands.Bot):
-    bot.add_cog(DuckGame(bot))
+async def setup(bot):
+    await bot.add_cog(DuckGame(bot))
