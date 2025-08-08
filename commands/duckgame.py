@@ -53,7 +53,6 @@ class DuckGameView(View):
 
         # Generate the initial image for the game
         self.initial_image = generate_duck_game_image(self.position, -1, [])
-        print("[DEBUG] Initialized DuckGameView with position -1")
 
     async def start_button_callback(self, interaction: discord.Interaction):
         if interaction.user.id != self.user.id:
@@ -61,9 +60,7 @@ class DuckGameView(View):
             return
 
         self.clear_items()
-        print("[DEBUG] Start button clicked. Game starting...")
         self.hazard_pos = random.randint(0, 4)
-        print(f"[DEBUG] Hazard position set to {self.hazard_pos}")
         self.forward_button = Button(label="Forward", style=discord.ButtonStyle.success)
         self.stop_button = Button(label="Stop", style=discord.ButtonStyle.danger)
         self.forward_button.callback = self.forward_button_callback
@@ -88,13 +85,10 @@ class DuckGameView(View):
         await interaction.response.edit_message(content=f"🎮 Player: {self.username}\n🦆 The duck moved forward safely!\nCurrent Winnings: ${self.session_wallet:.2f} | Multiplier: x{self.multiplier:.2f}\n💼 Wallet: ${wallet:.2f}\nRemaining Multipliers: {remaining_text}", attachments=[file], view=self)
 
     async def forward_button_callback(self, interaction: discord.Interaction):
-        print(f"[DEBUG] Forward clicked. Current position: {self.position}")
         if interaction.user.id != self.user.id:
             await interaction.response.send_message("You cannot control this game.", ephemeral=True)
             return
-
         self.position += 1
-        print(f"[DEBUG] Duck moved to position: {self.position}")
 
         if self.position == len(self.multipliers) - 1:
             self.multiplier = self.multipliers[self.position]
@@ -165,7 +159,6 @@ class DuckGameView(View):
             await interaction.response.edit_message(content=f"🎮 Player: {self.username}\n🦆 The duck moved forward safely!\nCurrent Winnings: ${self.session_wallet:.2f} | Multiplier: x{self.multiplier:.2f}\n💼 Wallet: ${wallet:.2f} | 🏦 Bank: ${bank:.2f}\nRemaining Multipliers: {remaining_text}", attachments=[file], view=self)
 
     async def stop_button_callback(self, interaction: discord.Interaction):
-        print(f"[DEBUG] Stop clicked. Final position: {self.position}")
         if interaction.user.id != self.user.id:
             await interaction.response.send_message("You cannot control this game.", ephemeral=True)
             return
@@ -199,9 +192,8 @@ class DuckGame(commands.Cog):
         self.bot = bot
         self.active_sessions = set()
 
-    @commands.hybrid_command(name="duckgame", description="Start the Duck Game!")
+    @commands.command(name="duckgame", help="Start the Duck Game!")
     async def duckgame_command(self, ctx: Context, amount: str):
-        print(f"[DEBUG] /duckgame command called by {ctx.author.name} with amount: {amount}")
         bank_data = load_bank()
         user_id = str(ctx.author.id)
         if user_id not in bank_data:
@@ -239,18 +231,38 @@ class DuckGame(commands.Cog):
         bank = bank_data[user_id].get("bank", 0.0)
         multiplier = 1.0
         view = DuckGameView(ctx.author, amount, user_wallet, multiplier, ctx.author.name)
-        print("[DEBUG] Created DuckGameView instance")
         buffer = io.BytesIO()
         image = generate_duck_game_image(-1, -1, [])
         image.save(buffer, format="PNG")
         buffer.seek(0)
         file = discord.File(fp=buffer, filename="start.png")
-        print("[DEBUG] Sending initial game message with image")
         await ctx.send(
             f"🎮 Player: {ctx.author.name}\n🦆 Duck Game Started!\nYou bet ${amount:.2f}. Click 'Start' to begin.\nCurrent Winnings: ${amount:.2f} | Multiplier: x{multiplier:.2f}\n💼 Wallet: ${user_wallet:.2f} | 🏦 Bank: ${bank:.2f}",
             view=view,
             file=file
         )
+
+    @commands.command(name="release_me", description="Release yourself from a stuck game session.")
+    async def self_release_command(self, ctx: Context):
+        bank_data = load_bank()
+        user_id = str(ctx.author.id)
+        if user_id in bank_data:
+            bank_data[user_id]["game_active"] = False
+            update_bank(bank_data)
+        self.active_sessions.discard(ctx.author.id)
+        await ctx.send("✅ You have been released from any stuck game session.")
+
+    @commands.command(name="helpduck", description="Show Duck Game bot commands.")
+    async def help_command(self, ctx: Context):
+        help_text = (
+            "**🦆 Duck Game Bot Commands:**\n"
+            "`/duckgame [amount|A|H]` - Start the Duck Game with a bet.\n"
+            "`!balance` - Check your wallet and bank balance.\n"
+            "`!deposit [amount|A|H]` - Deposit funds into your bank.\n"
+            "`!withdraw [amount|A|H]` - Withdraw funds from your bank.\n"
+            "`!release_me` - Release yourself if the game is stuck.\n"
+        )
+        await ctx.send(help_text)
 
     @commands.command(name="balance", description="Check your balance.")
     async def balance_command(self, ctx: Context):

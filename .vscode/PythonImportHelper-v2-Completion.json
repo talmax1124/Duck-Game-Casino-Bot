@@ -197,7 +197,7 @@
         "kind": 6,
         "importPath": "commands.duckgame",
         "description": "commands.duckgame",
-        "peekOfCode": "class DuckGame(commands.Cog):\n    def __init__(self, bot):\n        self.bot = bot\n        self.active_sessions = set()\n    @commands.hybrid_command(name=\"duckgame\", description=\"Start the Duck Game!\")\n    async def duckgame_command(self, ctx: Context, amount: str):\n        print(f\"[DEBUG] /duckgame command called by {ctx.author.name} with amount: {amount}\")\n        bank_data = load_bank()\n        user_id = str(ctx.author.id)\n        if user_id not in bank_data:",
+        "peekOfCode": "class DuckGame(commands.Cog):\n    def __init__(self, bot):\n        self.bot = bot\n        self.active_sessions = set()\n    @commands.command(name=\"duckgame\", help=\"Start the Duck Game!\")\n    async def duckgame_command(self, ctx: Context, amount: str):\n        bank_data = load_bank()\n        user_id = str(ctx.author.id)\n        if user_id not in bank_data:\n            bank_data[user_id] = {\"wallet\": 1000.0, \"bank\": 0.0, \"game_active\": False}",
         "detail": "commands.duckgame",
         "documentation": {}
     },
@@ -314,7 +314,7 @@
         "kind": 2,
         "importPath": "views.duck_view",
         "description": "views.duck_view",
-        "peekOfCode": "def generate_duck_game_image(position, hazard, duck_path, car_path, road_path, grass_path, bank=0, multiplier=1, save=False, game_started=False):\n    print(f\"[DEBUG] Generating image: position={position}, hazard={hazard}, game_started={game_started}\")\n    tile_width = 150\n    tile_height = 200\n    steps = 6\n    total_width = tile_width * steps\n    total_height = tile_height + 100  # Further increased for full canvas visibility\n    background = Image.new(\"RGBA\", (total_width, total_height), (0, 0, 0, 255))\n    try:\n        road_tile = Image.open(road_path).resize((tile_width, tile_height))",
+        "peekOfCode": "def generate_duck_game_image(position, hazard, duck_path, car_path, road_path, grass_path, bank=0, multiplier=1, save=False, game_started=False):\n    tile_width = 150\n    tile_height = 200\n    steps = 6\n    total_width = tile_width * steps\n    total_height = tile_height + 100  # Further increased for full canvas visibility\n    background = Image.new(\"RGBA\", (total_width, total_height), (0, 0, 0, 255))\n    try:\n        road_tile = Image.open(road_path).resize((tile_width, tile_height))\n    except Exception as e:",
         "detail": "views.duck_view",
         "documentation": {}
     },

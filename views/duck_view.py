@@ -2,7 +2,6 @@ from PIL import Image, ImageDraw, ImageFont
 
 
 def generate_duck_game_image(position, hazard, duck_path, car_path, road_path, grass_path, bank=0, multiplier=1, save=False, game_started=False):
-    print(f"[DEBUG] Generating image: position={position}, hazard={hazard}, game_started={game_started}")
     tile_width = 150
     tile_height = 200
     steps = 6
@@ -14,22 +13,18 @@ def generate_duck_game_image(position, hazard, duck_path, car_path, road_path, g
     try:
         road_tile = Image.open(road_path).resize((tile_width, tile_height))
     except Exception as e:
-        print(f"[ERROR] Failed to load road tile from {road_path}: {e}")
         raise
     try:
         grass_tile = Image.open(grass_path).resize((tile_width, tile_height))
     except Exception as e:
-        print(f"[ERROR] Failed to load grass tile from {grass_path}: {e}")
         raise
     try:
         duck = Image.open(duck_path).convert("RGBA").resize((tile_width, tile_height))
     except Exception as e:
-        print(f"[ERROR] Failed to load duck image from {duck_path}: {e}")
         raise
     try:
         car = Image.open(car_path).convert("RGBA").resize((tile_width, tile_height))
     except Exception as e:
-        print(f"[ERROR] Failed to load car image from {car_path}: {e}")
         raise
 
     if not game_started:
@@ -63,9 +58,6 @@ def generate_duck_game_image(position, hazard, duck_path, car_path, road_path, g
     if save:
         output_path = f"assets/generated/duck_game_pos{position}_haz{hazard}.png"
         background.save(output_path)
-        print(f"[DEBUG] Image saved to: {output_path}")
-        print(f"[DEBUG] Image generation complete. Returning file path.")
         return output_path
     else:
-        print(f"[DEBUG] Image generation complete. Returning image object.")
         return background

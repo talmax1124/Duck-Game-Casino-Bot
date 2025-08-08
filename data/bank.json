@@ -10,12 +10,22 @@
         "game_active": false
     },
     "1156391669533528084": {
-        "wallet": 133602998.0,
+        "wallet": 444602998.0,
         "bank": 0.0,
         "game_active": false
     },
     "858869182824972298": {
-        "wallet": 2000000000.0,
+        "wallet": 31250000.0,
+        "bank": 0.0,
+        "game_active": false
+    },
+    "528841666526838785": {
+        "wallet": 5000000.0,
+        "bank": 0.0,
+        "game_active": false
+    },
+    "1132528200950480926": {
+        "wallet": 99990.0,
         "bank": 0.0,
         "game_active": false
     }
