@@ -1,4 +1,12 @@
 {
-  "buildCommand": "pip install -r requirements.txt",
-  "startCommand": "python bot.py"
+  "build": {
+    "builder": "nixpacks",
+    "buildCommand": "pip install -r requirements.txt"
+  },
+  "start": {
+    "cmd": "python bot.py",
+    "envVars": {
+      "PYTHONUNBUFFERED": "1"
+    }
+  }
 }

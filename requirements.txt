@@ -8,3 +8,6 @@ multidict==6.6.3
 propcache==0.3.2
 py-cord==2.6.1
 yarl==1.20.1
+Pillow
+python-dotenv
+csprng
