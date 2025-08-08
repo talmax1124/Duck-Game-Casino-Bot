@@ -1,11 +1,11 @@
 {
     "466050111680544798": {
-        "wallet": 13495685.0,
+        "wallet": 13515985.0,
         "bank": 240000.0,
         "game_active": false
     },
     "824094955571380234": {
-        "wallet": 110998859998372.5,
+        "wallet": 0.0,
         "bank": 0.0,
         "game_active": false
     },
@@ -15,17 +15,27 @@
         "game_active": false
     },
     "858869182824972298": {
-        "wallet": 31250000.0,
+        "wallet": 8523189678790752.0,
         "bank": 0.0,
-        "game_active": false
+        "game_active": true
     },
     "528841666526838785": {
-        "wallet": 5000000.0,
+        "wallet": 3494999.5,
         "bank": 0.0,
         "game_active": false
     },
     "1132528200950480926": {
-        "wallet": 99990.0,
+        "wallet": 484933022244221.0,
+        "bank": 100170.0,
+        "game_active": false
+    },
+    "573227457717469184": {
+        "wallet": 770.0,
+        "bank": 0.0,
+        "game_active": false
+    },
+    "1326438668591829068": {
+        "wallet": 484933021244221.0,
         "bank": 0.0,
         "game_active": false
     }

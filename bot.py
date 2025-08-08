@@ -23,7 +23,8 @@ async def on_ready():
 async def setup():
     from commands import duckgame
     await duckgame.setup(bot)
-    await bot.start(TOKEN)
+    return bot
 
 if __name__ == "__main__":
-    asyncio.run(setup())
+    bot_instance = asyncio.run(setup())
+    asyncio.run(bot_instance.start(TOKEN))

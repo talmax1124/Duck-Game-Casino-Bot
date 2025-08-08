@@ -1,7 +1,7 @@
 import discord
 from discord.ui import View, Button
 from discord.ext import commands
-from discord.ext.commands import Context
+from discord.ext.commands import Context, cooldown, BucketType
 from utils.image_generator import generate_duck_game_image
 import random
 import io
@@ -261,6 +261,8 @@ class DuckGame(commands.Cog):
             "`!deposit [amount|A|H]` - Deposit funds into your bank.\n"
             "`!withdraw [amount|A|H]` - Withdraw funds from your bank.\n"
             "`!release_me` - Release yourself if the game is stuck.\n"
+            "`!sendmoney @user amount` - Send money to another user.\n"
+            "`!earn` - Earn $20,000 with a 1-hour cooldown.\n"
         )
         await ctx.send(help_text)
 
@@ -273,6 +275,44 @@ class DuckGame(commands.Cog):
         wallet = bank_data[user_id].get("wallet", 1000.0)
         bank = bank_data[user_id].get("bank", 0.0)
         await ctx.send(f"💰 {ctx.author.name}, your current wallet balance is: ${wallet:.2f}\n🏦 Your bank balance is: ${bank:.2f}")
+
+    @commands.command(name="sendmoney", description="Send money to another user.")
+    async def sendmoney_command(self, ctx: Context, member: discord.Member, amount: float):
+        if member == ctx.author:
+            await ctx.send("❌ You cannot send money to yourself.")
+            return
+
+        bank_data = load_bank()
+        sender_id = str(ctx.author.id)
+        receiver_id = str(member.id)
+
+        if sender_id not in bank_data:
+            bank_data[sender_id] = {"wallet": 1000.0, "bank": 0.0}
+        if receiver_id not in bank_data:
+            bank_data[receiver_id] = {"wallet": 1000.0, "bank": 0.0}
+
+        if bank_data[sender_id]["wallet"] < amount:
+            await ctx.send("❌ You don't have enough funds to send that amount.")
+            return
+
+        bank_data[sender_id]["wallet"] -= amount
+        bank_data[receiver_id]["wallet"] += amount
+        update_bank(bank_data)
+
+        await ctx.send(f"💸 {ctx.author.name} sent ${amount:.2f} to {member.name}.")
+
+    @commands.command(name="earn", description="Earn $20,000 with a 1-hour cooldown.")
+    @cooldown(1, 3600, BucketType.user)
+    async def earn_command(self, ctx: Context):
+        bank_data = load_bank()
+        user_id = str(ctx.author.id)
+        if user_id not in bank_data:
+            bank_data[user_id] = {"wallet": 1000.0, "bank": 0.0}
+
+        bank_data[user_id]["wallet"] += 20000
+        update_bank(bank_data)
+
+        await ctx.send(f"💰 {ctx.author.name}, you earned $20,000! The money has been added to your wallet. Come back in 1 hour for more.")
 
     @commands.command(name="withdraw", description="Withdraw from your bank to your wallet.")
     async def withdraw_command(self, ctx: Context, amount: str):
@@ -389,6 +429,8 @@ class DuckGame(commands.Cog):
             await ctx.send(f"✅ Released {member.name} from any stuck game session.")
 
 
+
 # Expose setup for bot integration
 async def setup(bot):
     await bot.add_cog(DuckGame(bot))
+    return bot

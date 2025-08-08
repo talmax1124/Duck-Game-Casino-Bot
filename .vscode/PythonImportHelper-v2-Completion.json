@@ -49,6 +49,22 @@
         "documentation": {}
     },
     {
+        "label": "cooldown",
+        "importPath": "discord.ext.commands",
+        "description": "discord.ext.commands",
+        "isExtraImport": true,
+        "detail": "discord.ext.commands",
+        "documentation": {}
+    },
+    {
+        "label": "BucketType",
+        "importPath": "discord.ext.commands",
+        "description": "discord.ext.commands",
+        "isExtraImport": true,
+        "detail": "discord.ext.commands",
+        "documentation": {}
+    },
+    {
         "label": "generate_duck_game_image",
         "importPath": "utils.image_generator",
         "description": "utils.image_generator",
@@ -224,7 +240,7 @@
         "kind": 2,
         "importPath": "utils.assets",
         "description": "utils.assets",
-        "peekOfCode": "def get_duck_visual(position: int, max_length=5) -> discord.File:\n    print(f\"[DEBUG] Generating duck visual at position: {position}\")\n    base_width = 100\n    base_height = 100\n    image_width = base_width * (max_length + 1)\n    image_height = base_height + duck.height  # ensures full fit\n    frames = []\n    try:\n        duck_path = os.path.join(BASE_DIR, \"..\", \"assets\", \"duck_images\", \"duck.png\")\n        duck = Image.open(duck_path).convert(\"RGBA\").resize((base_width, base_height))",
+        "peekOfCode": "def get_duck_visual(position: int, max_length=5) -> discord.File:\n    base_width = 100\n    base_height = 100\n    image_width = base_width * (max_length + 1)\n    image_height = base_height + duck.height  # ensures full fit\n    frames = []\n    try:\n        duck_path = os.path.join(BASE_DIR, \"..\", \"assets\", \"duck_images\", \"duck.png\")\n        duck = Image.open(duck_path).convert(\"RGBA\").resize((base_width, base_height))\n    except FileNotFoundError:",
         "detail": "utils.assets",
         "documentation": {}
     },
@@ -233,7 +249,7 @@
         "kind": 5,
         "importPath": "utils.assets",
         "description": "utils.assets",
-        "peekOfCode": "BASE_DIR = os.path.dirname(os.path.abspath(__file__))\ndef get_duck_visual(position: int, max_length=5) -> discord.File:\n    print(f\"[DEBUG] Generating duck visual at position: {position}\")\n    base_width = 100\n    base_height = 100\n    image_width = base_width * (max_length + 1)\n    image_height = base_height + duck.height  # ensures full fit\n    frames = []\n    try:\n        duck_path = os.path.join(BASE_DIR, \"..\", \"assets\", \"duck_images\", \"duck.png\")",
+        "peekOfCode": "BASE_DIR = os.path.dirname(os.path.abspath(__file__))\ndef get_duck_visual(position: int, max_length=5) -> discord.File:\n    base_width = 100\n    base_height = 100\n    image_width = base_width * (max_length + 1)\n    image_height = base_height + duck.height  # ensures full fit\n    frames = []\n    try:\n        duck_path = os.path.join(BASE_DIR, \"..\", \"assets\", \"duck_images\", \"duck.png\")\n        duck = Image.open(duck_path).convert(\"RGBA\").resize((base_width, base_height))",
         "detail": "utils.assets",
         "documentation": {}
     },
@@ -287,16 +303,7 @@
         "kind": 2,
         "importPath": "utils.image_generator",
         "description": "utils.image_generator",
-        "peekOfCode": "def generate_duck_game_image(position: int, hazard_pos: int, previous_positions: list[int]) -> Image.Image:\n    logger.debug(f\"Generating image with position={position}, hazard_pos={hazard_pos}, previous_positions={previous_positions}\")\n    # Load base road image\n    road = Image.open(\"assets/road/road.png\").convert(\"RGBA\")\n    grass = Image.open(\"assets/road/Grass.png\").convert(\"RGBA\")\n    duck = Image.open(\"assets/duck_images/duck.png\").convert(\"RGBA\")\n    car = Image.open(\"assets/road/car.png\").convert(\"RGBA\")\n    car = car.rotate(270, expand=True)\n    car = car.resize((car.width // 8, car.height // 8))\n    logger.debug(\"Loaded road, grass, duck, and car images.\")",
-        "detail": "utils.image_generator",
-        "documentation": {}
-    },
-    {
-        "label": "logger",
-        "kind": 5,
-        "importPath": "utils.image_generator",
-        "description": "utils.image_generator",
-        "peekOfCode": "logger = logging.getLogger(__name__)\ndef generate_duck_game_image(position: int, hazard_pos: int, previous_positions: list[int]) -> Image.Image:\n    logger.debug(f\"Generating image with position={position}, hazard_pos={hazard_pos}, previous_positions={previous_positions}\")\n    # Load base road image\n    road = Image.open(\"assets/road/road.png\").convert(\"RGBA\")\n    grass = Image.open(\"assets/road/Grass.png\").convert(\"RGBA\")\n    duck = Image.open(\"assets/duck_images/duck.png\").convert(\"RGBA\")\n    car = Image.open(\"assets/road/car.png\").convert(\"RGBA\")\n    car = car.rotate(270, expand=True)\n    car = car.resize((car.width // 8, car.height // 8))",
+        "peekOfCode": "def generate_duck_game_image(position: int, hazard_pos: int, previous_positions: list[int]) -> Image.Image:\n    # Load base road image\n    road = Image.open(\"assets/road/road.png\").convert(\"RGBA\")\n    grass = Image.open(\"assets/road/Grass.png\").convert(\"RGBA\")\n    duck = Image.open(\"assets/duck_images/duck.png\").convert(\"RGBA\")\n    car = Image.open(\"assets/road/car.png\").convert(\"RGBA\")\n    car = car.rotate(270, expand=True)\n    car = car.resize((car.width // 8, car.height // 8))\n    # Constants\n    tile_width = road.width",
         "detail": "utils.image_generator",
         "documentation": {}
     },
