@@ -1,6 +1,7 @@
 import discord
 from discord.ui import View, Button
 from discord.ext import commands
+from discord.ext.commands import Cog
 from discord.ext.commands import Context, cooldown, BucketType
 from utils.image_generator import generate_duck_game_image
 import random
@@ -187,7 +188,7 @@ class DuckGameView(View):
         self.view.bot.get_cog("DuckGame").active_sessions.discard(self.user.id)
 
 
-class DuckGame(commands.Cog):
+class DuckGame(Cog):
     def __init__(self, bot):
         self.bot = bot
         self.active_sessions = set()
@@ -432,5 +433,5 @@ class DuckGame(commands.Cog):
 
 # Expose setup for bot integration
 async def setup(bot):
-    await bot.add_cog(DuckGame(bot))
-    return bot
+    cog = DuckGame(bot)
+    await bot.add_cog(cog)

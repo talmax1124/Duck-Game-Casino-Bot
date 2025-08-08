@@ -41,6 +41,14 @@
         "documentation": {}
     },
     {
+        "label": "Cog",
+        "importPath": "discord.ext.commands",
+        "description": "discord.ext.commands",
+        "isExtraImport": true,
+        "detail": "discord.ext.commands",
+        "documentation": {}
+    },
+    {
         "label": "Context",
         "importPath": "discord.ext.commands",
         "description": "discord.ext.commands",
@@ -213,7 +221,7 @@
         "kind": 6,
         "importPath": "commands.duckgame",
         "description": "commands.duckgame",
-        "peekOfCode": "class DuckGame(commands.Cog):\n    def __init__(self, bot):\n        self.bot = bot\n        self.active_sessions = set()\n    @commands.command(name=\"duckgame\", help=\"Start the Duck Game!\")\n    async def duckgame_command(self, ctx: Context, amount: str):\n        bank_data = load_bank()\n        user_id = str(ctx.author.id)\n        if user_id not in bank_data:\n            bank_data[user_id] = {\"wallet\": 1000.0, \"bank\": 0.0, \"game_active\": False}",
+        "peekOfCode": "class DuckGame(Cog):\n    def __init__(self, bot):\n        self.bot = bot\n        self.active_sessions = set()\n    @commands.command(name=\"duckgame\", help=\"Start the Duck Game!\")\n    async def duckgame_command(self, ctx: Context, amount: str):\n        bank_data = load_bank()\n        user_id = str(ctx.author.id)\n        if user_id not in bank_data:\n            bank_data[user_id] = {\"wallet\": 1000.0, \"bank\": 0.0, \"game_active\": False}",
         "detail": "commands.duckgame",
         "documentation": {}
     },
