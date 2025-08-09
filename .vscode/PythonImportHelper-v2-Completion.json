@@ -117,6 +117,15 @@
         "documentation": {}
     },
     {
+        "label": "inspect",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "inspect",
+        "description": "inspect",
+        "detail": "inspect",
+        "documentation": {}
+    },
+    {
         "label": "Image",
         "importPath": "PIL",
         "description": "PIL",
@@ -179,6 +188,14 @@
         "importPath": "logging",
         "description": "logging",
         "detail": "logging",
+        "documentation": {}
+    },
+    {
+        "label": "List",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
         "documentation": {}
     },
     {
@@ -311,7 +328,7 @@
         "kind": 2,
         "importPath": "utils.image_generator",
         "description": "utils.image_generator",
-        "peekOfCode": "def generate_duck_game_image(position: int, hazard_pos: int, previous_positions: list[int]) -> Image.Image:\n    # Load base road image\n    road = Image.open(\"assets/road/road.png\").convert(\"RGBA\")\n    grass = Image.open(\"assets/road/Grass.png\").convert(\"RGBA\")\n    duck = Image.open(\"assets/duck_images/duck.png\").convert(\"RGBA\")\n    car = Image.open(\"assets/road/car.png\").convert(\"RGBA\")\n    car = car.rotate(270, expand=True)\n    car = car.resize((car.width // 8, car.height // 8))\n    # Constants\n    tile_width = road.width",
+        "peekOfCode": "def generate_duck_game_image(position: int, hazard_pos: int, previous_positions: List[int]) -> Image.Image:\n    \"\"\"\n    Generate a horizontal scene: [GRASS] [LANE0] [LANE1] [LANE2] [LANE3] [LANE4] [EXTRA PAD]\n    - position: -1 for grass start, 0..4 for lane index, >=5 means passed final lane (draw on extra pad)\n    - hazard_pos: 0..4 for the lane containing the car hazard; outside that range -> no car\n    - previous_positions: unused here (kept for signature compatibility)\n    \"\"\"\n    # Load images\n    road = Image.open(\"assets/road/road.png\").convert(\"RGBA\")\n    grass = Image.open(\"assets/road/Grass.png\").convert(\"RGBA\")",
         "detail": "utils.image_generator",
         "documentation": {}
     },
@@ -356,7 +373,7 @@
         "kind": 5,
         "importPath": "bot",
         "description": "bot",
-        "peekOfCode": "intents.message_content = True\nbot = commands.Bot(command_prefix=\"!\", intents=intents)\nbot.remove_command(\"help\")\n@bot.event\nasync def on_ready():\n    print(f\"✅ Logged in as {bot.user} (ID: {bot.user.id})\")\n    channel = bot.get_channel(1403244656845787170)\n    if channel:\n        await channel.send(\"🟢 Duck Game Bot is now online!\")\nasync def setup():",
+        "peekOfCode": "intents.message_content = True\nbot = commands.Bot(command_prefix=\"!\", intents=intents)\nbot.remove_command(\"help\")\n@bot.event\nasync def on_ready():\n    print(f\"✅ Logged in as {bot.user} (ID: {bot.user.id})\")\n    channel = bot.get_channel(1403244656845787170)\n    if channel:\n        await channel.send(\"🟢 Duck Game Bot is now online!\")\nasync def main():",
         "detail": "bot",
         "documentation": {}
     },
@@ -365,7 +382,7 @@
         "kind": 5,
         "importPath": "bot",
         "description": "bot",
-        "peekOfCode": "bot = commands.Bot(command_prefix=\"!\", intents=intents)\nbot.remove_command(\"help\")\n@bot.event\nasync def on_ready():\n    print(f\"✅ Logged in as {bot.user} (ID: {bot.user.id})\")\n    channel = bot.get_channel(1403244656845787170)\n    if channel:\n        await channel.send(\"🟢 Duck Game Bot is now online!\")\nasync def setup():\n    from commands import duckgame",
+        "peekOfCode": "bot = commands.Bot(command_prefix=\"!\", intents=intents)\nbot.remove_command(\"help\")\n@bot.event\nasync def on_ready():\n    print(f\"✅ Logged in as {bot.user} (ID: {bot.user.id})\")\n    channel = bot.get_channel(1403244656845787170)\n    if channel:\n        await channel.send(\"🟢 Duck Game Bot is now online!\")\nasync def main():\n    from commands import duckgame",
         "detail": "bot",
         "documentation": {}
     }

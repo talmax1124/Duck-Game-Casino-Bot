@@ -8,6 +8,7 @@ import random
 import io
 import json
 import os
+import inspect
 
 
 def load_bank():
@@ -60,6 +61,7 @@ class DuckGameView(View):
             await interaction.response.send_message("You cannot control this game.", ephemeral=True)
             return
 
+        # Prepare controls for ongoing game
         self.clear_items()
         self.hazard_pos = random.randint(0, 4)
         self.forward_button = Button(label="Forward", style=discord.ButtonStyle.success)
@@ -69,21 +71,72 @@ class DuckGameView(View):
         self.add_item(self.forward_button)
         self.add_item(self.stop_button)
 
-        self.multiplier = 0.0
-        self.session_wallet = 0.0
+        # Move from grass (-1) to first lane (0)
+        self.position = 0
+
+        # If hazard is on the first lane, immediate crash
+        if self.position == self.hazard_pos:
+            self.clear_items()
+            image = generate_duck_game_image(self.position, self.hazard_pos, [])
+            buffer = io.BytesIO()
+            image.save(buffer, format="PNG")
+            buffer.seek(0)
+            file = discord.File(fp=buffer, filename="crash.png")
+
+            bank_data = load_bank()
+            user_id = str(self.user.id)
+            bank_data[user_id]["wallet"] -= self.amount
+            if bank_data[user_id]["wallet"] < 0:
+                bank_data[user_id]["wallet"] = 0.0
+            bank_data[user_id]["game_active"] = False
+            update_bank(bank_data)
+
+            wallet = bank_data[user_id]["wallet"]
+            bank = bank_data[user_id]["bank"]
+            self.session_wallet = 0.0
+            remaining_multipliers = self.multipliers[self.position+1:]
+            remaining_text = ", ".join([f"x{m:.1f}" for m in remaining_multipliers]) if remaining_multipliers else "None"
+            await interaction.response.edit_message(
+                content=(
+                    f"🎮 Player: {self.username}\n"
+                    f"💥 The duck got hit by a car!\n"
+                    f"Current Winnings: ${self.session_wallet:.2f} | Multiplier: x{self.multiplier:.2f}\n"
+                    f"💼 Wallet: ${wallet:.2f} | 🏦 Bank: ${bank:.2f}\n"
+                    f"Remaining Multipliers: {remaining_text}"
+                ),
+                attachments=[file],
+                view=None
+            )
+            interaction.client.get_cog("DuckGame").active_sessions.discard(self.user.id)
+            return
+
+        # Safe move to lane 0: initialize multiplier and session winnings
+        self.multiplier = self.multipliers[self.position]
+        self.session_wallet = self.amount * self.multiplier
 
         image = generate_duck_game_image(self.position, -1, [])
         buffer = io.BytesIO()
         image.save(buffer, format="PNG")
         buffer.seek(0)
-        file = discord.File(fp=buffer, filename="start.png")
+        file = discord.File(fp=buffer, filename="lane0.png")
 
         bank_data = load_bank()
         user_id = str(self.user.id)
         wallet = bank_data[user_id]["wallet"]
+        bank = bank_data[user_id]["bank"]
         remaining_multipliers = self.multipliers[self.position+1:]
         remaining_text = ", ".join([f"x{m:.1f}" for m in remaining_multipliers]) if remaining_multipliers else "None"
-        await interaction.response.edit_message(content=f"🎮 Player: {self.username}\n🦆 The duck moved forward safely!\nCurrent Winnings: ${self.session_wallet:.2f} | Multiplier: x{self.multiplier:.2f}\n💼 Wallet: ${wallet:.2f}\nRemaining Multipliers: {remaining_text}", attachments=[file], view=self)
+        await interaction.response.edit_message(
+            content=(
+                f"🎮 Player: {self.username}\n"
+                f"🦆 The duck moved forward safely!\n"
+                f"Current Winnings: ${self.session_wallet:.2f} | Multiplier: x{self.multiplier:.2f}\n"
+                f"💼 Wallet: ${wallet:.2f} | 🏦 Bank: ${bank:.2f}\n"
+                f"Remaining Multipliers: {remaining_text}"
+            ),
+            attachments=[file],
+            view=self
+        )
 
     async def forward_button_callback(self, interaction: discord.Interaction):
         if interaction.user.id != self.user.id:
@@ -116,7 +169,7 @@ class DuckGameView(View):
                 attachments=[file],
                 view=None
             )
-            self.view.bot.get_cog("DuckGame").active_sessions.discard(self.user.id)
+            interaction.client.get_cog("DuckGame").active_sessions.discard(self.user.id)
             return
 
         if self.position == self.hazard_pos:
@@ -139,7 +192,7 @@ class DuckGameView(View):
             remaining_multipliers = self.multipliers[self.position+1:]
             remaining_text = ", ".join([f"x{m:.1f}" for m in remaining_multipliers]) if remaining_multipliers else "None"
             await interaction.response.edit_message(content=f"🎮 Player: {self.username}\n💥 The duck got hit by a car!\nCurrent Winnings: ${self.session_wallet:.2f} | Multiplier: x{self.multiplier:.2f}\n💼 Wallet: ${wallet:.2f} | 🏦 Bank: ${bank:.2f}\nRemaining Multipliers: {remaining_text}", attachments=[file], view=None)
-            self.view.bot.get_cog("DuckGame").active_sessions.discard(self.user.id)
+            interaction.client.get_cog("DuckGame").active_sessions.discard(self.user.id)
             return
         else:
             image = generate_duck_game_image(self.position, -1, [])
@@ -185,7 +238,7 @@ class DuckGameView(View):
         remaining_multipliers = self.multipliers[self.position+1:]
         remaining_text = ", ".join([f"x{m:.1f}" for m in remaining_multipliers]) if remaining_multipliers else "None"
         await interaction.response.edit_message(content=f"🎮 Player: {self.username}\n💰 You stopped the game and cashed out!\nFinal Winnings: ${self.session_wallet:.2f} | Final Multiplier: x{self.multiplier:.2f}\n💼 Wallet: ${wallet:.2f} | 🏦 Bank: ${bank:.2f}\nRemaining Multipliers: {remaining_text}", attachments=[file], view=None)
-        self.view.bot.get_cog("DuckGame").active_sessions.discard(self.user.id)
+        interaction.client.get_cog("DuckGame").active_sessions.discard(self.user.id)
 
 
 class DuckGame(Cog):
@@ -202,10 +255,6 @@ class DuckGame(Cog):
         if bank_data[user_id].get("game_active", False):
             await ctx.send("❌ You already have an active game session.")
             return
-        bank_data[user_id]["game_active"] = True
-        update_bank(bank_data)
-
-        self.active_sessions.add(ctx.author.id)
 
         user_wallet = bank_data[user_id].get("wallet", 1000.0)
 
@@ -220,9 +269,18 @@ class DuckGame(Cog):
                 await ctx.send("❌ Invalid bet amount. Please enter a number, or use 'A' for all or 'H' for half.")
                 return
 
+        if amount <= 0:
+            await ctx.send("❌ Bet must be greater than 0.")
+            return
+
         if amount > user_wallet:
             await ctx.send("❌ You don't have enough funds to bet that amount.")
             return
+
+        # Mark session active only after all validations pass
+        bank_data[user_id]["game_active"] = True
+        update_bank(bank_data)
+        self.active_sessions.add(ctx.author.id)
 
         # Removed deduction of amount from wallet
         # user_wallet -= amount
@@ -257,7 +315,7 @@ class DuckGame(Cog):
     async def help_command(self, ctx: Context):
         help_text = (
             "**🦆 Duck Game Bot Commands:**\n"
-            "`/duckgame [amount|A|H]` - Start the Duck Game with a bet.\n"
+            "`!duckgame [amount|A|H]` - Start the Duck Game with a bet.\n"
             "`!balance` - Check your wallet and bank balance.\n"
             "`!deposit [amount|A|H]` - Deposit funds into your bank.\n"
             "`!withdraw [amount|A|H]` - Withdraw funds from your bank.\n"
@@ -434,4 +492,8 @@ class DuckGame(Cog):
 # Expose setup for bot integration
 async def setup(bot):
     cog = DuckGame(bot)
-    await bot.add_cog(cog)
+    add_cog = getattr(bot, "add_cog")
+    if inspect.iscoroutinefunction(add_cog):
+        await add_cog(cog)
+    else:
+        add_cog(cog)

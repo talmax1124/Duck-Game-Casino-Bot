@@ -20,11 +20,10 @@ async def on_ready():
     if channel:
         await channel.send("🟢 Duck Game Bot is now online!")
 
-async def setup():
+async def main():
     from commands import duckgame
     await duckgame.setup(bot)
-    return bot
+    await bot.start(TOKEN)
 
 if __name__ == "__main__":
-    bot_instance = asyncio.run(setup())
-    asyncio.run(bot_instance.start(TOKEN))
+    asyncio.run(main())
