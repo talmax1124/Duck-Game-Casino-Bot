@@ -71,14 +71,27 @@ async def _ack(interaction: discord.Interaction):
 
 # --- Single-message edit helper ---------------------------------------------
 async def _edit_message(msg: discord.Message, **kwargs):
-    """Edit a message in place. Supports attachments via `attachments=[discord.File(...)]`."""
+    """Edit a message in place.
+    Pycord's Message.edit does not accept `files=...`; to change the image you must
+    pass `attachments=[discord.File(...), ...]`. This also replaces the existing
+    attachments so the image updates in-place.
+    """
     files = kwargs.pop("files", None)
-    if files:
-        kwargs["attachments"] = files
-    await msg.edit(**kwargs)
+    if files is not None:
+        # Replace existing attachments with the new files
+        await msg.edit(attachments=files, **kwargs)
+    else:
+        await msg.edit(**kwargs)
 
+#
 # Global async lock for bank.json to prevent race conditions across commands
-BANK_LOCK = asyncio.Lock()
+# Create the lock lazily to bind it to the active loop (prevents macOS loop errors)
+BANK_LOCK: asyncio.Lock | None = None
+async def _get_bank_lock() -> asyncio.Lock:
+    global BANK_LOCK
+    if BANK_LOCK is None:
+        BANK_LOCK = asyncio.Lock()
+    return BANK_LOCK
 
 
 def _atomic_write_json(path: str, data: dict):
@@ -106,12 +119,18 @@ def load_bank():
                 "bank": 0.0,
                 "game_active": False,
                 "last_earn_ts": 0.0,
+                "wins": 0,
+                "losses": 0,
+                "last_rob_ts": 0.0,
             }
         else:
             balances.setdefault("wallet", 1000.0)
             balances.setdefault("bank", 0.0)
             balances.setdefault("game_active", False)
             balances.setdefault("last_earn_ts", 0.0)
+            balances.setdefault("wins", 0)
+            balances.setdefault("losses", 0)
+            balances.setdefault("last_rob_ts", 0.0)
     return data
 
 
@@ -322,12 +341,14 @@ class DuckGameView(View):
             image = generate_duck_game_image(self.total_lanes, -1, [], total_slots=self.total_lanes)
             buffer = io.BytesIO(); image.save(buffer, format="PNG"); buffer.seek(0)
             file = discord.File(fp=buffer, filename="finish.png")
-            async with BANK_LOCK:
+            lock = await _get_bank_lock()
+            async with lock:
                 bank_data = load_bank()
                 user_id = str(self.user.id)
-                bank_data.setdefault(user_id, {"wallet": 1000.0, "bank": 0.0, "game_active": False, "last_earn_ts": 0.0})
+                bank_data.setdefault(user_id, {"wallet": 1000.0, "bank": 0.0, "game_active": False, "last_earn_ts": 0.0, "wins": 0, "losses": 0, "last_rob_ts": 0.0})
                 bank_data[user_id]["wallet"] += self.session_wallet
                 bank_data[user_id]["game_active"] = False
+                bank_data[user_id]["wins"] = int(bank_data[user_id].get("wins", 0)) + 1
                 update_bank(bank_data)
             wallet = bank_data[user_id]["wallet"]; bank = bank_data[user_id]["bank"]
             await _edit_message(
@@ -349,11 +370,13 @@ class DuckGameView(View):
             image = generate_duck_game_image(self.position, self.hazard_pos, [], total_slots=self.total_lanes)
             buffer = io.BytesIO(); image.save(buffer, format="PNG"); buffer.seek(0)
             file = discord.File(fp=buffer, filename="crash.png")
-            async with BANK_LOCK:
+            lock = await _get_bank_lock()
+            async with lock:
                 bank_data = load_bank()
                 user_id = str(self.user.id)
-                bank_data.setdefault(user_id, {"wallet": 1000.0, "bank": 0.0, "game_active": False, "last_earn_ts": 0.0})
+                bank_data.setdefault(user_id, {"wallet": 1000.0, "bank": 0.0, "game_active": False, "last_earn_ts": 0.0, "wins": 0, "losses": 0, "last_rob_ts": 0.0})
                 bank_data[user_id]["game_active"] = False
+                bank_data[user_id]["losses"] = int(bank_data[user_id].get("losses", 0)) + 1
                 update_bank(bank_data)
             wallet = bank_data[user_id]["wallet"]; bank = bank_data[user_id]["bank"]
             self.session_wallet = 0.0
@@ -428,12 +451,14 @@ class DuckGameView(View):
         # Disable buttons on the old message to avoid duplicate clicks
         await self._freeze_message(interaction)
         self.ended = True
-        async with BANK_LOCK:
+        lock = await _get_bank_lock()
+        async with lock:
             bank_data = load_bank()
             user_id = str(self.user.id)
             if user_id not in bank_data:
-                bank_data[user_id] = {"wallet": 1000.0, "bank": 0.0, "game_active": False, "last_earn_ts": 0.0}
+                bank_data[user_id] = {"wallet": 1000.0, "bank": 0.0, "game_active": False, "last_earn_ts": 0.0, "wins": 0, "losses": 0, "last_rob_ts": 0.0}
             bank_data[user_id]["wallet"] += self.session_wallet
+            bank_data[user_id]["wins"] = int(bank_data[user_id].get("wins", 0)) + 1
             bank_data[user_id]["game_active"] = False
             update_bank(bank_data)
 
@@ -460,6 +485,61 @@ class DuckGameView(View):
         )
         interaction.client.get_cog("DuckGame").active_sessions.discard(self.user.id)
 
+
+# -------------------- LEADERBOARD PAGINATION VIEW --------------------
+class LeaderboardView(View):
+    def __init__(self, ctx: Context, pages: list[list[tuple[int, int, str]]]):
+        super().__init__(timeout=120)
+        self.ctx = ctx
+        self.pages = pages
+        self.index = 0
+        self.prev_btn = Button(label="Prev", style=discord.ButtonStyle.secondary)
+        self.next_btn = Button(label="Next", style=discord.ButtonStyle.secondary)
+        self.prev_btn.callback = self._prev
+        self.next_btn.callback = self._next
+        self.add_item(self.prev_btn)
+        self.add_item(self.next_btn)
+        self._sync_buttons()
+
+    def _sync_buttons(self):
+        self.prev_btn.disabled = self.index <= 0
+        self.next_btn.disabled = self.index >= (len(self.pages) - 1)
+
+    def _make_embed(self, guild: discord.Guild | None) -> discord.Embed:
+        entries = self.pages[self.index]
+        start_rank = self.index * 10 + 1
+        lines = []
+        for i, (wins, losses, uid) in enumerate(entries, start=start_rank):
+            member = guild.get_member(int(uid)) if guild else None
+            name = member.name if member else f"User {uid}"
+            lines.append(f"**{i}.** {name} — 🏆 {wins} wins | 💀 {losses} losses")
+        total_pages = max(1, len(self.pages))
+        embed = discord.Embed(
+            title=f"🧮 Duck Game Leaderboard (Page {self.index+1}/{total_pages})",
+            description="\n".join(lines) if lines else "No stats yet.",
+            color=discord.Color.gold(),
+        )
+        return embed
+
+    async def _prev(self, interaction: discord.Interaction):
+        if interaction.user.id != self.ctx.author.id:
+            await interaction.response.send_message("Only the command invoker can change pages.", ephemeral=True)
+            return
+        await _ack(interaction)
+        if self.index > 0:
+            self.index -= 1
+            self._sync_buttons()
+            await _edit_message(interaction.message, embed=self._make_embed(self.ctx.guild), view=self)
+
+    async def _next(self, interaction: discord.Interaction):
+        if interaction.user.id != self.ctx.author.id:
+            await interaction.response.send_message("Only the command invoker can change pages.", ephemeral=True)
+            return
+        await _ack(interaction)
+        if self.index < len(self.pages) - 1:
+            self.index += 1
+            self._sync_buttons()
+            await _edit_message(interaction.message, embed=self._make_embed(self.ctx.guild), view=self)
 
 # -------------------- COG --------------------
 class DuckGame(Cog):
@@ -502,10 +582,11 @@ class DuckGame(Cog):
             return
 
         # Deduct stake and mark session active atomically
-        async with BANK_LOCK:
+        lock = await _get_bank_lock()
+        async with lock:
             fresh = load_bank()
             # ensure record exists
-            fresh.setdefault(user_id, {"wallet": 1000.0, "bank": 0.0, "game_active": False, "last_earn_ts": 0.0})
+            fresh.setdefault(user_id, {"wallet": 1000.0, "bank": 0.0, "game_active": False, "last_earn_ts": 0.0, "wins": 0, "losses": 0, "last_rob_ts": 0.0})
             if float(fresh[user_id]["wallet"]) < float(amount):
                 await ctx.send("❌ You no longer have enough funds to place that bet.")
                 return
@@ -536,7 +617,8 @@ class DuckGame(Cog):
 
     @commands.command(name="release_me", description="Release yourself from a stuck game session.")
     async def self_release_command(self, ctx: Context):
-        async with BANK_LOCK:
+        lock = await _get_bank_lock()
+        async with lock:
             bank_data = load_bank()
             user_id = str(ctx.author.id)
             if user_id in bank_data:
@@ -556,16 +638,67 @@ class DuckGame(Cog):
             "`!release_me` - Release yourself if the game is stuck.\n"
             "`!sendmoney @user amount` - Send money to another user.\n"
             "`!earn` - Earn $20,000 with a 1-hour cooldown.\n"
+            "`!rob @user` - Try to rob another player (50% lose 5% fine, 50% steal up to 10%; 1h30m cooldown).\n"
+            "`!leaderboard` or `!lb` - Show top players with pagination (10 per page).\n"
+            "`!mystats` - Show your personal wins, losses, and win rate.\n"
+            "Tip: For amounts, you can use `A` for all and `H` for half of your wallet/bank.\n"
         )
         await ctx.send(help_text)
 
+    @commands.command(name="leaderboard", aliases=["lb"], description="Show top players by wins and losses.")
+    async def leaderboard_command(self, ctx: Context):
+        data = load_bank()
+        if not data:
+            await ctx.send("No stats yet.")
+            return
+
+        entries: list[tuple[int, int, str]] = []
+        for uid, rec in data.items():
+            if not isinstance(rec, dict):
+                continue
+            wins = int(rec.get("wins", 0))
+            losses = int(rec.get("losses", 0))
+            if wins > 0 or losses > 0:
+                entries.append((wins, losses, uid))
+
+        if not entries:
+            await ctx.send("No stats yet.")
+            return
+
+        entries.sort(key=lambda t: (-t[0], t[1], int(t[2])))
+        pages = [entries[i:i+10] for i in range(0, len(entries), 10)]
+
+        view = LeaderboardView(ctx, pages)
+        embed = view._make_embed(ctx.guild)
+        await ctx.send(embed=embed, view=view)
+
+    @commands.command(name="mystats", description="Show your personal stats (wins, losses, win rate).")
+    async def mystats_command(self, ctx: Context):
+        data = load_bank()
+        user = data.get(str(ctx.author.id), {})
+        wins = int(user.get("wins", 0))
+        losses = int(user.get("losses", 0))
+        games = wins + losses
+        win_rate = (wins / games * 100.0) if games > 0 else 0.0
+        embed = discord.Embed(
+            title=f"📊 {ctx.author.name}'s Stats",
+            description=(
+                f"🏆 Wins: **{wins}**\n"
+                f"💀 Losses: **{losses}**\n"
+                f"📈 Win Rate: **{win_rate:.1f}%** ({games} game{'s' if games!=1 else ''})"
+            ),
+            color=discord.Color.blurple(),
+        )
+        await ctx.send(embed=embed)
+
     @commands.command(name="balance", description="Check your balance.")
     async def balance_command(self, ctx: Context):
-        async with BANK_LOCK:
+        lock = await _get_bank_lock()
+        async with lock:
             bank_data = load_bank()
             user_id = str(ctx.author.id)
             if user_id not in bank_data:
-                bank_data[user_id] = {"wallet": 1000.0, "bank": 0.0, "game_active": False, "last_earn_ts": 0.0}
+                bank_data[user_id] = {"wallet": 1000.0, "bank": 0.0, "game_active": False, "last_earn_ts": 0.0, "wins": 0, "losses": 0, "last_rob_ts": 0.0}
                 update_bank(bank_data)
             wallet = bank_data[user_id].get("wallet", 1000.0)
             bank = bank_data[user_id].get("bank", 0.0)
@@ -584,13 +717,14 @@ class DuckGame(Cog):
             await ctx.send("❌ Amount must be greater than 0.")
             return
 
-        async with BANK_LOCK:
+        lock = await _get_bank_lock()
+        async with lock:
             bank_data = load_bank()
             sender_id = str(ctx.author.id)
             receiver_id = str(member.id)
 
-            bank_data.setdefault(sender_id, {"wallet": 1000.0, "bank": 0.0, "game_active": False, "last_earn_ts": 0.0})
-            bank_data.setdefault(receiver_id, {"wallet": 1000.0, "bank": 0.0, "game_active": False, "last_earn_ts": 0.0})
+            bank_data.setdefault(sender_id, {"wallet": 1000.0, "bank": 0.0, "game_active": False, "last_earn_ts": 0.0, "wins": 0, "losses": 0, "last_rob_ts": 0.0})
+            bank_data.setdefault(receiver_id, {"wallet": 1000.0, "bank": 0.0, "game_active": False, "last_earn_ts": 0.0, "wins": 0, "losses": 0, "last_rob_ts": 0.0})
 
             if bank_data[sender_id]["wallet"] < amount:
                 await ctx.send("❌ You don't have enough funds to send that amount.")
@@ -604,12 +738,13 @@ class DuckGame(Cog):
 
     @commands.command(name="earn", description="Earn $20,000 with a 1-hour cooldown.")
     async def earn_command(self, ctx: Context):
-        async with BANK_LOCK:
+        lock = await _get_bank_lock()
+        async with lock:
             bank_data = load_bank()
             user_id = str(ctx.author.id)
             user = bank_data.setdefault(
                 user_id,
-                {"wallet": 1000.0, "bank": 0.0, "game_active": False, "last_earn_ts": 0.0},
+                {"wallet": 1000.0, "bank": 0.0, "game_active": False, "last_earn_ts": 0.0, "wins": 0, "losses": 0, "last_rob_ts": 0.0},
             )
             now = time.time()
             last_ts = float(user.get("last_earn_ts", 0.0))
@@ -628,11 +763,12 @@ class DuckGame(Cog):
 
     @commands.command(name="withdraw", description="Withdraw from your bank to your wallet.")
     async def withdraw_command(self, ctx: Context, amount: str):
-        async with BANK_LOCK:
+        lock = await _get_bank_lock()
+        async with lock:
             bank_data = load_bank()
             user_id = str(ctx.author.id)
             if user_id not in bank_data:
-                bank_data[user_id] = {"wallet": 1000.0, "bank": 0.0, "game_active": False, "last_earn_ts": 0.0}
+                bank_data[user_id] = {"wallet": 1000.0, "bank": 0.0, "game_active": False, "last_earn_ts": 0.0, "wins": 0, "losses": 0, "last_rob_ts": 0.0}
 
             bank_balance = bank_data[user_id]["bank"]
             if amount.lower() == "a":
@@ -663,11 +799,12 @@ class DuckGame(Cog):
 
     @commands.command(name="deposit", description="Deposit from your wallet to your bank.")
     async def deposit_command(self, ctx: Context, amount: str):
-        async with BANK_LOCK:
+        lock = await _get_bank_lock()
+        async with lock:
             bank_data = load_bank()
             user_id = str(ctx.author.id)
             if user_id not in bank_data:
-                bank_data[user_id] = {"wallet": 1000.0, "bank": 0.0, "game_active": False, "last_earn_ts": 0.0}
+                bank_data[user_id] = {"wallet": 1000.0, "bank": 0.0, "game_active": False, "last_earn_ts": 0.0, "wins": 0, "losses": 0, "last_rob_ts": 0.0}
 
             wallet_balance = bank_data[user_id]["wallet"]
             if amount.lower() == "a":
@@ -700,11 +837,12 @@ class DuckGame(Cog):
         if not _has_admin_role(ctx.author):
             await ctx.send("❌ You need the 'admin' role to use this command.")
             return
-        async with BANK_LOCK:
+        lock = await _get_bank_lock()
+        async with lock:
             bank_data = load_bank()
             user_id = str(member.id)
             if user_id not in bank_data:
-                bank_data[user_id] = {"wallet": 1000.0, "bank": 0.0, "game_active": False, "last_earn_ts": 0.0}
+                bank_data[user_id] = {"wallet": 1000.0, "bank": 0.0, "game_active": False, "last_earn_ts": 0.0, "wins": 0, "losses": 0, "last_rob_ts": 0.0}
 
             if wallet is not None:
                 if wallet < 0:
@@ -729,7 +867,8 @@ class DuckGame(Cog):
             return
 
         if member_or_all.lower() == "a":
-            async with BANK_LOCK:
+            lock = await _get_bank_lock()
+            async with lock:
                 bank_data = load_bank()
                 for user_id in bank_data:
                     bank_data[user_id]["game_active"] = False
@@ -743,7 +882,8 @@ class DuckGame(Cog):
                 await ctx.send("❌ Invalid user mention or ID.")
                 return
 
-            async with BANK_LOCK:
+            lock = await _get_bank_lock()
+            async with lock:
                 bank_data = load_bank()
                 user_id = str(member.id)
                 if user_id in bank_data:
@@ -752,6 +892,64 @@ class DuckGame(Cog):
 
             self.active_sessions.discard(member.id)
             await ctx.send(f"✅ Released {member.name} from any stuck game session.")
+
+    @commands.command(name="rob", description="Attempt to rob someone with risk.")
+    async def rob_command(self, ctx: Context, member: discord.Member):
+        if member.bot:
+            await ctx.send("❌ You can't rob bots.")
+            return
+        if member == ctx.author:
+            await ctx.send("❌ You can't rob yourself.")
+            return
+
+        now = time.time()
+        lock = await _get_bank_lock()
+        async with lock:
+            data = load_bank()
+            robber_id = str(ctx.author.id)
+            victim_id = str(member.id)
+            # Ensure defaults
+            for uid in (robber_id, victim_id):
+                data.setdefault(uid, {"wallet": 1000.0, "bank": 0.0, "game_active": False, "last_earn_ts": 0.0, "wins": 0, "losses": 0, "last_rob_ts": 0.0})
+
+            last = float(data[robber_id].get("last_rob_ts", 0.0))
+            remaining = last + (90 * 60) - now
+            if remaining > 0:
+                mins = int(remaining // 60)
+                secs = int(remaining % 60)
+                await ctx.send(f"⏳ You need to wait {mins}m {secs}s before trying to rob again.")
+                return
+
+            import secrets
+            success = bool(secrets.randbits(1))
+            robber_wallet = float(data[robber_id]["wallet"])
+            victim_wallet = float(data[victim_id]["wallet"])
+
+            if success:
+                if victim_wallet <= 0:
+                    data[robber_id]["last_rob_ts"] = now
+                    update_bank(data)
+                    await ctx.send(f"😐 {member.name} has no money to steal.")
+                    return
+                steal_pct = (secrets.randbelow(10) + 1) / 100.0  # 1%..10%
+                amount = max(1.0, victim_wallet * steal_pct)
+                amount = min(amount, victim_wallet)
+                data[victim_id]["wallet"] = victim_wallet - amount
+                data[robber_id]["wallet"] = robber_wallet + amount
+                data[robber_id]["last_rob_ts"] = now
+                update_bank(data)
+                await ctx.send(f"🕵️ {ctx.author.name} successfully robbed {member.name} for {fmt(amount)}!")
+            else:
+                if robber_wallet <= 0:
+                    data[robber_id]["last_rob_ts"] = now
+                    update_bank(data)
+                    await ctx.send("🚓 You got caught, but you had no money to fine.")
+                    return
+                fine = max(1.0, robber_wallet * 0.05)  # 5%
+                data[robber_id]["wallet"] = robber_wallet - fine
+                data[robber_id]["last_rob_ts"] = now
+                update_bank(data)
+                await ctx.send(f"🚨 {ctx.author.name} was caught trying to rob {member.name} and was fined {fmt(fine)}!")
 
 
 # Expose setup for bot integration

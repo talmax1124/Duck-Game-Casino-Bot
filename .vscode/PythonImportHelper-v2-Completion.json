@@ -183,7 +183,23 @@
         "documentation": {}
     },
     {
+        "label": "Dict",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
         "label": "Tuple",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Optional",
         "importPath": "typing",
         "description": "typing",
         "isExtraImport": true,
@@ -260,6 +276,15 @@
         "documentation": {}
     },
     {
+        "label": "LeaderboardView",
+        "kind": 6,
+        "importPath": "commands.duckgame",
+        "description": "commands.duckgame",
+        "peekOfCode": "class LeaderboardView(View):\n    def __init__(self, ctx: Context, pages: list[list[tuple[int, int, str]]]):\n        super().__init__(timeout=120)\n        self.ctx = ctx\n        self.pages = pages\n        self.index = 0\n        self.prev_btn = Button(label=\"Prev\", style=discord.ButtonStyle.secondary)\n        self.next_btn = Button(label=\"Next\", style=discord.ButtonStyle.secondary)\n        self.prev_btn.callback = self._prev\n        self.next_btn.callback = self._next",
+        "detail": "commands.duckgame",
+        "documentation": {}
+    },
+    {
         "label": "DuckGame",
         "kind": 6,
         "importPath": "commands.duckgame",
@@ -332,15 +357,6 @@
         "documentation": {}
     },
     {
-        "label": "BANK_LOCK",
-        "kind": 5,
-        "importPath": "commands.duckgame",
-        "description": "commands.duckgame",
-        "peekOfCode": "BANK_LOCK = asyncio.Lock()\ndef _atomic_write_json(path: str, data: dict):\n    tmp_path = path + \".tmp\"\n    with open(tmp_path, \"w\") as f:\n        json.dump(data, f, indent=4)\n    # os.replace is atomic on POSIX; it overwrites the target\n    os.replace(tmp_path, path)\ndef load_bank():\n    if not os.path.exists(\"data/bank.json\"):\n        return {}",
-        "detail": "commands.duckgame",
-        "documentation": {}
-    },
-    {
         "label": "get_duck_visual",
         "kind": 2,
         "importPath": "utils.assets",
@@ -408,7 +424,7 @@
         "kind": 2,
         "importPath": "utils.bank",
         "description": "utils.bank",
-        "peekOfCode": "def load_bank() -> dict:\n    _ensure_dir_and_file()\n    with _LOCK:\n        try:\n            with open(BANK_FILE, \"r\") as f:\n                data = json.load(f)\n                if not isinstance(data, dict):\n                    return {}\n                return data\n        except Exception:",
+        "peekOfCode": "def load_bank() -> dict:\n    _ensure_dir_and_file()\n    with _LOCK:\n        try:\n            with open(BANK_FILE, \"r\") as f:\n                data = json.load(f)\n                return data if isinstance(data, dict) else {}\n        except Exception:\n            return {}\ndef save_bank(bank: dict) -> None:",
         "detail": "utils.bank",
         "documentation": {}
     },
@@ -417,7 +433,151 @@
         "kind": 2,
         "importPath": "utils.bank",
         "description": "utils.bank",
-        "peekOfCode": "def save_bank(bank: dict) -> None:\n    _ensure_dir_and_file()\n    with _LOCK:\n        _atomic_write_json(BANK_FILE, bank)\ndef get_balance(user_id) -> float:\n    \"\"\"Return the simple balance for a user (legacy single-balance schema).\"\"\"\n    uid = str(user_id)\n    with _LOCK:\n        bank = load_bank()\n        return float(bank.get(uid, _DEFAULT_BAL))",
+        "peekOfCode": "def save_bank(bank: dict) -> None:\n    _ensure_dir_and_file()\n    with _LOCK:\n        _atomic_write_json(BANK_FILE, bank)\n# ----------------------------- schema helpers --------------------------------\ndef _ensure_user(bank: dict, uid: str) -> dict:\n    if uid not in bank or not isinstance(bank[uid], dict):\n        bank[uid] = dict(_DEFAULT_USER)\n    # Fill any missing keys (forward compatible)\n    for k, v in _DEFAULT_USER.items():",
+        "detail": "utils.bank",
+        "documentation": {}
+    },
+    {
+        "label": "get_balances",
+        "kind": 2,
+        "importPath": "utils.bank",
+        "description": "utils.bank",
+        "peekOfCode": "def get_balances(user_id) -> Tuple[float, float]:\n    \"\"\"Return (wallet, bank) for the user, creating a default record if needed.\"\"\"\n    uid = str(user_id)\n    with _LOCK:\n        data = load_bank()\n        rec = _ensure_user(data, uid)\n        save_bank(data)\n        return float(rec[\"wallet\"]), float(rec[\"bank\"])\ndef set_balances(user_id, *, wallet: Optional[float] = None, bank: Optional[float] = None) -> Tuple[float, float]:\n    \"\"\"Set wallet and/or bank (clamped to >= 0). Returns (wallet, bank).\"\"\"",
+        "detail": "utils.bank",
+        "documentation": {}
+    },
+    {
+        "label": "set_balances",
+        "kind": 2,
+        "importPath": "utils.bank",
+        "description": "utils.bank",
+        "peekOfCode": "def set_balances(user_id, *, wallet: Optional[float] = None, bank: Optional[float] = None) -> Tuple[float, float]:\n    \"\"\"Set wallet and/or bank (clamped to >= 0). Returns (wallet, bank).\"\"\"\n    uid = str(user_id)\n    with _LOCK:\n        data = load_bank()\n        rec = _ensure_user(data, uid)\n        if wallet is not None:\n            rec[\"wallet\"] = max(0.0, float(wallet))\n        if bank is not None:\n            rec[\"bank\"] = max(0.0, float(bank))",
+        "detail": "utils.bank",
+        "documentation": {}
+    },
+    {
+        "label": "adjust_wallet",
+        "kind": 2,
+        "importPath": "utils.bank",
+        "description": "utils.bank",
+        "peekOfCode": "def adjust_wallet(user_id, delta: float, *, floor: float = 0.0) -> Tuple[bool, float]:\n    \"\"\"Add `delta` to wallet. If result < floor, abort and return (False, current).\"\"\"\n    uid = str(user_id)\n    with _LOCK:\n        data = load_bank()\n        rec = _ensure_user(data, uid)\n        cur = float(rec[\"wallet\"])\n        new_val = cur + float(delta)\n        if new_val < float(floor):\n            return False, cur",
+        "detail": "utils.bank",
+        "documentation": {}
+    },
+    {
+        "label": "adjust_bank",
+        "kind": 2,
+        "importPath": "utils.bank",
+        "description": "utils.bank",
+        "peekOfCode": "def adjust_bank(user_id, delta: float, *, floor: float = 0.0) -> Tuple[bool, float]:\n    \"\"\"Add `delta` to bank. If result < floor, abort and return (False, current).\"\"\"\n    uid = str(user_id)\n    with _LOCK:\n        data = load_bank()\n        rec = _ensure_user(data, uid)\n        cur = float(rec[\"bank\"])\n        new_val = cur + float(delta)\n        if new_val < float(floor):\n            return False, cur",
+        "detail": "utils.bank",
+        "documentation": {}
+    },
+    {
+        "label": "move_wallet_to_bank",
+        "kind": 2,
+        "importPath": "utils.bank",
+        "description": "utils.bank",
+        "peekOfCode": "def move_wallet_to_bank(user_id, amount: float) -> bool:\n    \"\"\"Transfer `amount` from wallet to bank. Returns True on success.\"\"\"\n    if amount <= 0:\n        return False\n    uid = str(user_id)\n    with _LOCK:\n        data = load_bank()\n        rec = _ensure_user(data, uid)\n        if rec[\"wallet\"] < amount:\n            return False",
+        "detail": "utils.bank",
+        "documentation": {}
+    },
+    {
+        "label": "move_bank_to_wallet",
+        "kind": 2,
+        "importPath": "utils.bank",
+        "description": "utils.bank",
+        "peekOfCode": "def move_bank_to_wallet(user_id, amount: float) -> bool:\n    \"\"\"Transfer `amount` from bank to wallet. Returns True on success.\"\"\"\n    if amount <= 0:\n        return False\n    uid = str(user_id)\n    with _LOCK:\n        data = load_bank()\n        rec = _ensure_user(data, uid)\n        if rec[\"bank\"] < amount:\n            return False",
+        "detail": "utils.bank",
+        "documentation": {}
+    },
+    {
+        "label": "set_game_active",
+        "kind": 2,
+        "importPath": "utils.bank",
+        "description": "utils.bank",
+        "peekOfCode": "def set_game_active(user_id, active: bool) -> None:\n    uid = str(user_id)\n    with _LOCK:\n        data = load_bank()\n        rec = _ensure_user(data, uid)\n        rec[\"game_active\"] = bool(active)\n        save_bank(data)\ndef get_game_active(user_id) -> bool:\n    uid = str(user_id)\n    with _LOCK:",
+        "detail": "utils.bank",
+        "documentation": {}
+    },
+    {
+        "label": "get_game_active",
+        "kind": 2,
+        "importPath": "utils.bank",
+        "description": "utils.bank",
+        "peekOfCode": "def get_game_active(user_id) -> bool:\n    uid = str(user_id)\n    with _LOCK:\n        data = load_bank()\n        rec = _ensure_user(data, uid)\n        save_bank(data)\n        return bool(rec.get(\"game_active\", False))\ndef get_last_earn_ts(user_id) -> float:\n    uid = str(user_id)\n    with _LOCK:",
+        "detail": "utils.bank",
+        "documentation": {}
+    },
+    {
+        "label": "get_last_earn_ts",
+        "kind": 2,
+        "importPath": "utils.bank",
+        "description": "utils.bank",
+        "peekOfCode": "def get_last_earn_ts(user_id) -> float:\n    uid = str(user_id)\n    with _LOCK:\n        data = load_bank()\n        rec = _ensure_user(data, uid)\n        save_bank(data)\n        return float(rec.get(\"last_earn_ts\", 0.0))\ndef set_last_earn_ts(user_id, ts: Optional[float] = None) -> None:\n    uid = str(user_id)\n    ts = time.time() if ts is None else float(ts)",
+        "detail": "utils.bank",
+        "documentation": {}
+    },
+    {
+        "label": "set_last_earn_ts",
+        "kind": 2,
+        "importPath": "utils.bank",
+        "description": "utils.bank",
+        "peekOfCode": "def set_last_earn_ts(user_id, ts: Optional[float] = None) -> None:\n    uid = str(user_id)\n    ts = time.time() if ts is None else float(ts)\n    with _LOCK:\n        data = load_bank()\n        rec = _ensure_user(data, uid)\n        rec[\"last_earn_ts\"] = ts\n        save_bank(data)\ndef get_last_rob_ts(user_id) -> float:\n    uid = str(user_id)",
+        "detail": "utils.bank",
+        "documentation": {}
+    },
+    {
+        "label": "get_last_rob_ts",
+        "kind": 2,
+        "importPath": "utils.bank",
+        "description": "utils.bank",
+        "peekOfCode": "def get_last_rob_ts(user_id) -> float:\n    uid = str(user_id)\n    with _LOCK:\n        data = load_bank()\n        rec = _ensure_user(data, uid)\n        save_bank(data)\n        return float(rec.get(\"last_rob_ts\", 0.0))\ndef set_last_rob_ts(user_id, ts: Optional[float] = None) -> None:\n    uid = str(user_id)\n    ts = time.time() if ts is None else float(ts)",
+        "detail": "utils.bank",
+        "documentation": {}
+    },
+    {
+        "label": "set_last_rob_ts",
+        "kind": 2,
+        "importPath": "utils.bank",
+        "description": "utils.bank",
+        "peekOfCode": "def set_last_rob_ts(user_id, ts: Optional[float] = None) -> None:\n    uid = str(user_id)\n    ts = time.time() if ts is None else float(ts)\n    with _LOCK:\n        data = load_bank()\n        rec = _ensure_user(data, uid)\n        rec[\"last_rob_ts\"] = ts\n        save_bank(data)\n# ----------------------------- win/loss stats ---------------------------------\ndef get_stats(user_id) -> Tuple[int, int]:",
+        "detail": "utils.bank",
+        "documentation": {}
+    },
+    {
+        "label": "get_stats",
+        "kind": 2,
+        "importPath": "utils.bank",
+        "description": "utils.bank",
+        "peekOfCode": "def get_stats(user_id) -> Tuple[int, int]:\n    uid = str(user_id)\n    with _LOCK:\n        data = load_bank()\n        rec = _ensure_user(data, uid)\n        save_bank(data)\n        return int(rec.get(\"wins\", 0)), int(rec.get(\"losses\", 0))\ndef increment_win(user_id) -> Tuple[int, int]:\n    uid = str(user_id)\n    with _LOCK:",
+        "detail": "utils.bank",
+        "documentation": {}
+    },
+    {
+        "label": "increment_win",
+        "kind": 2,
+        "importPath": "utils.bank",
+        "description": "utils.bank",
+        "peekOfCode": "def increment_win(user_id) -> Tuple[int, int]:\n    uid = str(user_id)\n    with _LOCK:\n        data = load_bank()\n        rec = _ensure_user(data, uid)\n        rec[\"wins\"] = int(rec.get(\"wins\", 0)) + 1\n        save_bank(data)\n        return int(rec[\"wins\"]), int(rec.get(\"losses\", 0))\ndef increment_loss(user_id) -> Tuple[int, int]:\n    uid = str(user_id)",
+        "detail": "utils.bank",
+        "documentation": {}
+    },
+    {
+        "label": "increment_loss",
+        "kind": 2,
+        "importPath": "utils.bank",
+        "description": "utils.bank",
+        "peekOfCode": "def increment_loss(user_id) -> Tuple[int, int]:\n    uid = str(user_id)\n    with _LOCK:\n        data = load_bank()\n        rec = _ensure_user(data, uid)\n        rec[\"losses\"] = int(rec.get(\"losses\", 0)) + 1\n        save_bank(data)\n        return int(rec.get(\"wins\", 0)), int(rec[\"losses\"])\ndef get_all_stats() -> Dict[str, Dict[str, int]]:\n    \"\"\"Return mapping of user_id -> {wins, losses}.\"\"\"",
+        "detail": "utils.bank",
+        "documentation": {}
+    },
+    {
+        "label": "get_all_stats",
+        "kind": 2,
+        "importPath": "utils.bank",
+        "description": "utils.bank",
+        "peekOfCode": "def get_all_stats() -> Dict[str, Dict[str, int]]:\n    \"\"\"Return mapping of user_id -> {wins, losses}.\"\"\"\n    with _LOCK:\n        data = load_bank()\n        for uid in list(data.keys()):\n            _ensure_user(data, uid)\n        save_bank(data)\n        out: Dict[str, Dict[str, int]] = {}\n        for uid, rec in data.items():\n            if not isinstance(rec, dict):",
         "detail": "utils.bank",
         "documentation": {}
     },
@@ -426,7 +586,7 @@
         "kind": 2,
         "importPath": "utils.bank",
         "description": "utils.bank",
-        "peekOfCode": "def get_balance(user_id) -> float:\n    \"\"\"Return the simple balance for a user (legacy single-balance schema).\"\"\"\n    uid = str(user_id)\n    with _LOCK:\n        bank = load_bank()\n        return float(bank.get(uid, _DEFAULT_BAL))\ndef set_balance(user_id, new_amount: float) -> None:\n    \"\"\"Set (overwrite) a user's balance. Never writes a negative value below 0.\"\"\"\n    uid = str(user_id)\n    if new_amount < 0:",
+        "peekOfCode": "def get_balance(user_id) -> float:\n    wallet, _ = get_balances(user_id)\n    return wallet\ndef set_balance(user_id, new_amount: float) -> None:\n    set_balances(user_id, wallet=new_amount)\ndef update_balance(user_id, amount: float, *, allow_negative: bool = False, floor: float = 0.0) -> Tuple[bool, float]:\n    floor_val = float(floor) if not allow_negative else float(\"-inf\")\n    ok, new_wallet = adjust_wallet(user_id, amount, floor=floor_val)\n    return ok, new_wallet",
         "detail": "utils.bank",
         "documentation": {}
     },
@@ -435,7 +595,7 @@
         "kind": 2,
         "importPath": "utils.bank",
         "description": "utils.bank",
-        "peekOfCode": "def set_balance(user_id, new_amount: float) -> None:\n    \"\"\"Set (overwrite) a user's balance. Never writes a negative value below 0.\"\"\"\n    uid = str(user_id)\n    if new_amount < 0:\n        new_amount = 0.0\n    with _LOCK:\n        bank = load_bank()\n        bank[uid] = float(new_amount)\n        save_bank(bank)\ndef update_balance(user_id, amount: float, *, allow_negative: bool = False, floor: float = 0.0) -> Tuple[bool, float]:",
+        "peekOfCode": "def set_balance(user_id, new_amount: float) -> None:\n    set_balances(user_id, wallet=new_amount)\ndef update_balance(user_id, amount: float, *, allow_negative: bool = False, floor: float = 0.0) -> Tuple[bool, float]:\n    floor_val = float(floor) if not allow_negative else float(\"-inf\")\n    ok, new_wallet = adjust_wallet(user_id, amount, floor=floor_val)\n    return ok, new_wallet",
         "detail": "utils.bank",
         "documentation": {}
     },
@@ -444,7 +604,7 @@
         "kind": 2,
         "importPath": "utils.bank",
         "description": "utils.bank",
-        "peekOfCode": "def update_balance(user_id, amount: float, *, allow_negative: bool = False, floor: float = 0.0) -> Tuple[bool, float]:\n    \"\"\"\n    Increment a user's balance by `amount`.\n    Returns (ok, new_balance).\n      - If `allow_negative` is False and the operation would drop the balance below `floor`,\n        the update is aborted and (False, current_balance) is returned.\n      - Otherwise, updates the stored balance atomically and returns (True, new_balance).\n    \"\"\"\n    uid = str(user_id)\n    with _LOCK:",
+        "peekOfCode": "def update_balance(user_id, amount: float, *, allow_negative: bool = False, floor: float = 0.0) -> Tuple[bool, float]:\n    floor_val = float(floor) if not allow_negative else float(\"-inf\")\n    ok, new_wallet = adjust_wallet(user_id, amount, floor=floor_val)\n    return ok, new_wallet",
         "detail": "utils.bank",
         "documentation": {}
     },
@@ -453,16 +613,7 @@
         "kind": 5,
         "importPath": "utils.bank",
         "description": "utils.bank",
-        "peekOfCode": "BANK_FILE = \"data/bank.json\"\n_DEFAULT_BAL = 1000.0\n# Thread-safe lock for concurrent access from multiple commands\n_LOCK = threading.RLock()\ndef _ensure_dir_and_file():\n    os.makedirs(os.path.dirname(BANK_FILE) or \".\", exist_ok=True)\n    if not os.path.exists(BANK_FILE):\n        with open(BANK_FILE, \"w\") as f:\n            json.dump({}, f)\ndef _atomic_write_json(path: str, data: dict):",
-        "detail": "utils.bank",
-        "documentation": {}
-    },
-    {
-        "label": "_DEFAULT_BAL",
-        "kind": 5,
-        "importPath": "utils.bank",
-        "description": "utils.bank",
-        "peekOfCode": "_DEFAULT_BAL = 1000.0\n# Thread-safe lock for concurrent access from multiple commands\n_LOCK = threading.RLock()\ndef _ensure_dir_and_file():\n    os.makedirs(os.path.dirname(BANK_FILE) or \".\", exist_ok=True)\n    if not os.path.exists(BANK_FILE):\n        with open(BANK_FILE, \"w\") as f:\n            json.dump({}, f)\ndef _atomic_write_json(path: str, data: dict):\n    tmp_path = path + \".tmp\"",
+        "peekOfCode": "BANK_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), \"..\", \"data\", \"bank.json\"))\n# Default per-user record\n_DEFAULT_USER: Dict[str, float | bool | int] = {\n    \"wallet\": 1000.0,\n    \"bank\": 0.0,\n    \"game_active\": False,\n    \"last_earn_ts\": 0.0,\n    \"last_rob_ts\": 0.0,\n    \"wins\": 0,\n    \"losses\": 0,",
         "detail": "utils.bank",
         "documentation": {}
     },
@@ -471,7 +622,7 @@
         "kind": 5,
         "importPath": "utils.bank",
         "description": "utils.bank",
-        "peekOfCode": "_LOCK = threading.RLock()\ndef _ensure_dir_and_file():\n    os.makedirs(os.path.dirname(BANK_FILE) or \".\", exist_ok=True)\n    if not os.path.exists(BANK_FILE):\n        with open(BANK_FILE, \"w\") as f:\n            json.dump({}, f)\ndef _atomic_write_json(path: str, data: dict):\n    tmp_path = path + \".tmp\"\n    with open(tmp_path, \"w\") as f:\n        json.dump(data, f, indent=4)",
+        "peekOfCode": "_LOCK = threading.RLock()\n# ----------------------------- low-level I/O ---------------------------------\ndef _ensure_dir_and_file():\n    os.makedirs(os.path.dirname(BANK_FILE) or \".\", exist_ok=True)\n    if not os.path.exists(BANK_FILE):\n        with open(BANK_FILE, \"w\") as f:\n            json.dump({}, f)\ndef _atomic_write_json(path: str, data: dict):\n    tmp_path = path + \".tmp\"\n    with open(tmp_path, \"w\") as f:",
         "detail": "utils.bank",
         "documentation": {}
     },
