@@ -1,111 +1,162 @@
-from PIL import Image
-from typing import List
 import os
+import io
+from typing import Iterable, Tuple, Optional
 
-# Simple cache to avoid reloading assets repeatedly
-_IMG_CACHE = {}
+import discord
+from PIL import Image, ImageDraw
+from discord.ext import commands
 
-def _load_img(path: str) -> Image.Image:
-    if path in _IMG_CACHE:
-        return _IMG_CACHE[path]
-    img = Image.open(path).convert("RGBA")
-    _IMG_CACHE[path] = img
-    return img
+# ---------------------------------------------------------------------------
+# Configuration
+# ---------------------------------------------------------------------------
+IMAGE_CDN_CHANNEL_ID = int(os.getenv("IMAGE_CDN_CHANNEL_ID", "0"))
+
+ASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets")
+ROAD_DIR = os.path.join(ASSETS_DIR, "road")
+DUCK_DIR = os.path.join(ASSETS_DIR, "duck_images")
+
+GRASS_PATH = os.path.join(ROAD_DIR, "Grass.png")
+LANE_PATH = os.path.join(ROAD_DIR, "road.png")
+END_PATH = os.path.join(ROAD_DIR, "end.png")  # finish lane image
+CAR_PATH = os.path.join(ROAD_DIR, "car.png")
+DUCK_PATH = os.path.join(DUCK_DIR, "duck.png")
+
+# Fallback sizes in case assets are missing
+DEFAULT_TILE_W, DEFAULT_TILE_H = 256, 256
+
+# ---------------------------------------------------------------------------
+# Image CDN helper (uploads a PIL image to a private channel and returns URL)
+# ---------------------------------------------------------------------------
+async def upload_frame_and_get_url(
+    bot: commands.Bot,
+    pil_img: Image.Image,
+    filename: str,
+    delete_last_id: Optional[int] = None,
+) -> Tuple[str, int]:
+    """Upload a PIL image to the configured CDN channel and return (url, msg_id).
+
+    Requires IMAGE_CDN_CHANNEL_ID and the bot having Send/Attach/Delete in that channel.
+    """
+    if not IMAGE_CDN_CHANNEL_ID:
+        raise RuntimeError("IMAGE_CDN_CHANNEL_ID not set in environment")
+
+    chan = bot.get_channel(IMAGE_CDN_CHANNEL_ID)
+    if chan is None:
+        chan = await bot.fetch_channel(IMAGE_CDN_CHANNEL_ID)
+
+    if delete_last_id:
+        try:
+            old = await chan.fetch_message(delete_last_id)
+            await old.delete()
+        except Exception:
+            pass
+
+    buf = io.BytesIO()
+    pil_img.save(buf, format="PNG")
+    buf.seek(0)
+
+    cdn_msg = await chan.send(file=discord.File(buf, filename=filename))
+    url = cdn_msg.attachments[0].url
+    return url, cdn_msg.id
+
+# ---------------------------------------------------------------------------
+# Board rendering
+# ---------------------------------------------------------------------------
+
+def _load_image(path: str, fallback_size: Tuple[int, int] = (DEFAULT_TILE_W, DEFAULT_TILE_H)) -> Image.Image:
+    try:
+        return Image.open(path).convert("RGBA")
+    except Exception:
+        # Solid gray fallback so the game still runs without assets
+        return Image.new("RGBA", fallback_size, (120, 120, 120, 255))
+
+
+def _center_paste(base: Image.Image, overlay: Image.Image, box: Tuple[int, int, int, int]):
+    """Paste overlay centered inside the given (left, top, right, bottom) box."""
+    l, t, r, b = box
+    box_w, box_h = r - l, b - t
+    ow, oh = overlay.size
+    x = l + (box_w - ow) // 2
+    y = t + (box_h - oh) // 2
+    base.alpha_composite(overlay, (x, y))
 
 
 def generate_duck_game_image(
     position: int,
     hazard_pos: int,
-    previous_positions: List[int],
-    *,
-    total_slots: int = 5,
-    show_hazard: bool = True,
+    previous_positions: Iterable[int],
+    total_slots: int,
 ) -> Image.Image:
+    """Render the board as a single image.
+
+    Columns (left to right):
+      - grass (start, virtual index -1)
+      - regular lanes 0..total_slots-1
+      - finish lane at index == total_slots
+
+    Rules:
+      - Show the car only when a crash is being displayed (i.e., caller passes
+        hazard_pos equal to current position). This matches the requirement
+        that the car is invisible until the lane is reached and ends the game.
+      - The duck is centered in the current column (grass -> index -1).
     """
-    Generate a horizontal scene with variable lanes and a finish tile:
-      [GRASS] [LANE 0] ... [LANE N-1] [FINISH]
+    # Load tiles
+    grass = _load_image(GRASS_PATH)
+    lane = _load_image(LANE_PATH)
+    finish = _load_image(END_PATH)
+    car = _load_image(CAR_PATH)
+    duck = _load_image(DUCK_PATH)
 
-    Args:
-        position: -1 for grass start, 0..total_slots-1 for lane index,
-                  >= total_slots means draw on the finish lane.
-        hazard_pos: 0..total_slots-1 for the lane containing the car hazard; any other value -> no car.
-        previous_positions: kept for signature compatibility (unused here).
-        total_slots: number of playable road lanes (excludes grass and finish lane).
-        show_hazard: if False, never draw the car; if True, draw car only when hazard_pos is within 0..total_slots-1.
-    """
-    # Load assets
-    road = _load_img("assets/road/road.png")
-    grass = _load_img("assets/road/Grass.png")
-    duck = _load_img("assets/duck_images/duck.png")
-    car = _load_img("assets/road/car.png")
-    finish = _load_img("assets/road/end.png") if os.path.exists("assets/road/end.png") else road
+    # Normalize sizes (all tiles to lane tile size)
+    tile_w, tile_h = lane.size if lane else (DEFAULT_TILE_W, DEFAULT_TILE_H)
+    grass = grass.resize((tile_w, tile_h), Image.LANCZOS)
+    finish = finish.resize((tile_w, tile_h), Image.LANCZOS)
 
-    # Normalize sizes based on road tile
-    lane_w, lane_h = road.width, road.height
+    # Scale entities
+    # Car: width is slightly bigger than before; keep aspect and cast to ints
+    cw = max(1, tile_w / 1.8)
+    ch = max(1, int(round(car.height * (cw / float(car.width)))))
+    car = car.resize((int(cw), int(ch)), Image.LANCZOS)
+    # rotate 270 degrees to match game orientation
+    car = car.rotate(270, expand=True)
+    # Duck: width is exactly tile_w/2; keep aspect and cast to ints
+    dw = max(1, tile_w / 2)
+    dh = max(1, int(round(duck.height * (dw / float(duck.width)))))
+    duck = duck.resize((int(dw), int(dh)), Image.LANCZOS)
 
-    # Resize grass/finish to lane box
-    if grass.height != lane_h:
-        grass = grass.resize((grass.width, lane_h))
-    if finish.size != (lane_w, lane_h):
-        finish = finish.resize((lane_w, lane_h))
+    # Canvas columns: grass + lanes + finish
+    columns = 1 + total_slots + 1
+    canvas = Image.new("RGBA", (tile_w * columns, tile_h), (0, 0, 0, 0))
 
-    # Canvas size: grass + N lanes + finish + small padding
-    right_pad = int(lane_w * 0.15)
-    canvas_w = grass.width + total_slots * lane_w + finish.width + right_pad
-    canvas_h = max(lane_h, duck.height)
-    canvas = Image.new("RGBA", (canvas_w, canvas_h), (18, 18, 18, 255))
+    # Compose background
+    x = 0
+    canvas.alpha_composite(grass, (x, 0))
+    x += tile_w
+    for _ in range(total_slots):
+        canvas.alpha_composite(lane, (x, 0))
+        x += tile_w
+    canvas.alpha_composite(finish, (x, 0))
 
-    # Paste grass at left, bottom-aligned
-    canvas.paste(grass, (0, canvas_h - grass.height), grass)
+    # Compute column rectangles for centering entities
+    col_boxes = [
+        (i * tile_w, 0, (i + 1) * tile_w, tile_h) for i in range(columns)
+    ]
 
-    # Paste lanes after grass
-    base_x = grass.width
-    for i in range(total_slots):
-        x = base_x + i * lane_w
-        canvas.paste(road, (x, canvas_h - lane_h), road)
+    # Duck column index in the composed image
+    duck_col = position + 1  # shift because grass is column 0
+    duck_col = max(0, min(duck_col, columns - 1))
 
-    # Paste finish lane
-    finish_x = base_x + total_slots * lane_w
-    canvas.paste(finish, (finish_x, canvas_h - lane_h), finish)
+    # Draw duck
+    _center_paste(canvas, duck, col_boxes[duck_col])
 
-    # Helper: center X for a given logical index
-    # -1 = grass, 0..total_slots-1 = lanes, total_slots or more = finish
-    def center_x_for_index(idx: int) -> int:
-        if idx < 0:
-            return grass.width // 2
-        if 0 <= idx < total_slots:
-            left = base_x + idx * lane_w
-            return left + lane_w // 2
-        return finish_x + lane_w // 2
-
-    # Scale sprites relative to lane height (smaller: 1/8 of lane height)
-    duck_h = int(lane_h / 8)
-    duck_w = max(1, int(duck.width * (duck_h / max(1, duck.height))))
-    duck_img = duck.resize((duck_w, duck_h), Image.LANCZOS)
-
-    car_h = int(lane_h / 8)
-    car_w = max(1, int(car.width * (car_h / max(1, car.height))))
-    # Rotate car to face across lanes (90 degrees)
-    car_img = car.resize((car_w, car_h), Image.LANCZOS).rotate(270, expand=True)
-
-    # ---- Place CAR (hazard) only if requested and within lanes ----
-    if show_hazard and 0 <= hazard_pos < total_slots:
-        car_center_x = center_x_for_index(hazard_pos)
-        car_x = int(car_center_x - car_img.width / 2)
-        car_y = canvas_h - lane_h + (lane_h - car_img.height) // 2
-        canvas.paste(car_img, (car_x, car_y), car_img)
-
-    # ---- Place DUCK ----
-    if position <= -1:
-        duck_idx = -1
-    elif 0 <= position < total_slots:
-        duck_idx = position
-    else:
-        duck_idx = total_slots  # draw on finish lane
-
-    duck_center_x = center_x_for_index(duck_idx)
-    duck_x = int(duck_center_x - duck_img.width / 2)
-    duck_y = canvas_h - duck_img.height  # bottom align
-    canvas.paste(duck_img, (duck_x, duck_y), duck_img)
+    # Draw car only when hazard_pos is the *current* position (crash frame)
+    if hazard_pos >= 0 and position == hazard_pos:
+        car_col = hazard_pos + 1
+        _center_paste(canvas, car, col_boxes[car_col])
 
     return canvas
+
+__all__ = [
+    "generate_duck_game_image",
+    "upload_frame_and_get_url",
+]

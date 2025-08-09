@@ -1,12 +1,12 @@
 {
     "466050111680544798": {
-        "wallet": 344555255.0,
+        "wallet": 605.0,
         "bank": 240000.0,
         "game_active": false,
         "last_earn_ts": 1754707755.927018,
         "last_rob_ts": 1754719100.498465,
-        "wins": 2,
-        "losses": 1
+        "wins": 8,
+        "losses": 10
     },
     "824094955571380234": {
         "wallet": 20000.0,
@@ -30,10 +30,10 @@
         "wallet": 0.0,
         "bank": 0.0,
         "game_active": false,
-        "last_earn_ts": 1754723992.2592268,
-        "last_rob_ts": 0.0,
+        "last_earn_ts": 1754727595.1827772,
+        "last_rob_ts": 1754727743.286939,
         "wins": 20,
-        "losses": 15
+        "losses": 24
     },
     "528841666526838785": {
         "wallet": 3494799.5,
@@ -72,13 +72,13 @@
         "losses": 0
     },
     "1275301861490036767": {
-        "wallet": 200038514500.0,
-        "bank": 0.0,
+        "wallet": 1400000000.0,
+        "bank": 209928534500.0,
         "game_active": false,
-        "last_earn_ts": 1754707159.274352,
+        "last_earn_ts": 1754726860.9004428,
         "last_rob_ts": 0.0,
-        "wins": 0,
-        "losses": 0
+        "wins": 4,
+        "losses": 2
     },
     "1009220009739960411": {
         "wallet": 0.0,
@@ -99,12 +99,12 @@
         "losses": 6
     },
     "403705011567198228": {
-        "wallet": 44663769185.88207,
+        "wallet": 22331894592.441036,
         "bank": 0.0,
-        "game_active": false,
-        "last_earn_ts": 1754714204.408064,
+        "game_active": true,
+        "last_earn_ts": 1754726860.4528298,
         "last_rob_ts": 1754723928.8556,
-        "wins": 0,
-        "losses": 1
+        "wins": 3,
+        "losses": 2
     }
 }

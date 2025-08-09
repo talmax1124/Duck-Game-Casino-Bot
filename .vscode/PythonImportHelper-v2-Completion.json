@@ -49,6 +49,14 @@
         "documentation": {}
     },
     {
+        "label": "commands",
+        "importPath": "discord.ext",
+        "description": "discord.ext",
+        "isExtraImport": true,
+        "detail": "discord.ext",
+        "documentation": {}
+    },
+    {
         "label": "Cog",
         "importPath": "discord.ext.commands",
         "description": "discord.ext.commands",
@@ -167,6 +175,14 @@
         "documentation": {}
     },
     {
+        "label": "ImageDraw",
+        "importPath": "PIL",
+        "description": "PIL",
+        "isExtraImport": true,
+        "detail": "PIL",
+        "documentation": {}
+    },
+    {
         "label": "List",
         "importPath": "typing",
         "description": "typing",
@@ -207,7 +223,23 @@
         "documentation": {}
     },
     {
-        "label": "List",
+        "label": "Iterable",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Tuple",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Optional",
         "importPath": "typing",
         "description": "typing",
         "isExtraImport": true,
@@ -289,7 +321,7 @@
         "kind": 6,
         "importPath": "commands.duckgame",
         "description": "commands.duckgame",
-        "peekOfCode": "class DuckGame(Cog):\n    def __init__(self, bot):\n        self.bot = bot\n        self.active_sessions = set()\n    @commands.command(name=\"duck\", help=\"Start the Duck Game (choose a mode). Usage: !duck [amount|A|H]\")\n    async def duck_command(self, ctx: Context, amount: str):\n        bank_data = load_bank()\n        user_id = str(ctx.author.id)\n        if user_id not in bank_data:\n            bank_data[user_id] = {\"wallet\": 1000.0, \"bank\": 0.0, \"game_active\": False, \"last_earn_ts\": 0.0}",
+        "peekOfCode": "class DuckGame(Cog):\n    def __init__(self, bot):\n        self.bot = bot\n        self.active_sessions = set()\n    @commands.command(name=\"testduck\", help=\"Generate a sample Duck Game board image for testing.\")\n    async def testduck_command(self, ctx: Context, lanes: int = 5):\n        \"\"\"Quick sanity check: renders a board with the duck in grass and no hazards.\n        Usage: !testduck [lanes]\n        \"\"\"\n        try:",
         "detail": "commands.duckgame",
         "documentation": {}
     },
@@ -361,7 +393,7 @@
         "kind": 2,
         "importPath": "utils.assets",
         "description": "utils.assets",
-        "peekOfCode": "def get_duck_visual(\n    position: int,\n    max_length: int = 5,\n    *,\n    hazard_pos: int = -1,\n    show_hazard: bool = True,\n    labels: Optional[List[str]] = None,\n    base_width: int = 100,\n    duck_scale: float = 1.0,\n    car_scale: float = 0.5,",
+        "peekOfCode": "def get_duck_visual(\n    position: int,\n    max_length: int = 5,\n    *,\n    hazard_pos: int = -1,\n    show_hazard: bool = True,\n    labels: Optional[List[str]] = None,\n    base_width: int = 100,\n    duck_scale: float = 1.0,\n    car_scale: float = 1.0,",
         "detail": "utils.assets",
         "documentation": {}
     },
@@ -631,16 +663,97 @@
         "kind": 2,
         "importPath": "utils.image_generator",
         "description": "utils.image_generator",
-        "peekOfCode": "def generate_duck_game_image(\n    position: int,\n    hazard_pos: int,\n    previous_positions: List[int],\n    *,\n    total_slots: int = 5,\n    show_hazard: bool = True,\n) -> Image.Image:\n    \"\"\"\n    Generate a horizontal scene with variable lanes and a finish tile:",
+        "peekOfCode": "def generate_duck_game_image(\n    position: int,\n    hazard_pos: int,\n    previous_positions: Iterable[int],\n    total_slots: int,\n) -> Image.Image:\n    \"\"\"Render the board as a single image.\n    Columns (left to right):\n      - grass (start, virtual index -1)\n      - regular lanes 0..total_slots-1",
         "detail": "utils.image_generator",
         "documentation": {}
     },
     {
-        "label": "_IMG_CACHE",
+        "label": "IMAGE_CDN_CHANNEL_ID",
         "kind": 5,
         "importPath": "utils.image_generator",
         "description": "utils.image_generator",
-        "peekOfCode": "_IMG_CACHE = {}\ndef _load_img(path: str) -> Image.Image:\n    if path in _IMG_CACHE:\n        return _IMG_CACHE[path]\n    img = Image.open(path).convert(\"RGBA\")\n    _IMG_CACHE[path] = img\n    return img\ndef generate_duck_game_image(\n    position: int,\n    hazard_pos: int,",
+        "peekOfCode": "IMAGE_CDN_CHANNEL_ID = int(os.getenv(\"IMAGE_CDN_CHANNEL_ID\", \"0\"))\nASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), \"assets\")\nROAD_DIR = os.path.join(ASSETS_DIR, \"road\")\nDUCK_DIR = os.path.join(ASSETS_DIR, \"duck_images\")\nGRASS_PATH = os.path.join(ROAD_DIR, \"Grass.png\")\nLANE_PATH = os.path.join(ROAD_DIR, \"road.png\")\nEND_PATH = os.path.join(ROAD_DIR, \"end.png\")  # finish lane image\nCAR_PATH = os.path.join(ROAD_DIR, \"car.png\")\nDUCK_PATH = os.path.join(DUCK_DIR, \"duck.png\")\n# Fallback sizes in case assets are missing",
+        "detail": "utils.image_generator",
+        "documentation": {}
+    },
+    {
+        "label": "ASSETS_DIR",
+        "kind": 5,
+        "importPath": "utils.image_generator",
+        "description": "utils.image_generator",
+        "peekOfCode": "ASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), \"assets\")\nROAD_DIR = os.path.join(ASSETS_DIR, \"road\")\nDUCK_DIR = os.path.join(ASSETS_DIR, \"duck_images\")\nGRASS_PATH = os.path.join(ROAD_DIR, \"Grass.png\")\nLANE_PATH = os.path.join(ROAD_DIR, \"road.png\")\nEND_PATH = os.path.join(ROAD_DIR, \"end.png\")  # finish lane image\nCAR_PATH = os.path.join(ROAD_DIR, \"car.png\")\nDUCK_PATH = os.path.join(DUCK_DIR, \"duck.png\")\n# Fallback sizes in case assets are missing\nDEFAULT_TILE_W, DEFAULT_TILE_H = 256, 256",
+        "detail": "utils.image_generator",
+        "documentation": {}
+    },
+    {
+        "label": "ROAD_DIR",
+        "kind": 5,
+        "importPath": "utils.image_generator",
+        "description": "utils.image_generator",
+        "peekOfCode": "ROAD_DIR = os.path.join(ASSETS_DIR, \"road\")\nDUCK_DIR = os.path.join(ASSETS_DIR, \"duck_images\")\nGRASS_PATH = os.path.join(ROAD_DIR, \"Grass.png\")\nLANE_PATH = os.path.join(ROAD_DIR, \"road.png\")\nEND_PATH = os.path.join(ROAD_DIR, \"end.png\")  # finish lane image\nCAR_PATH = os.path.join(ROAD_DIR, \"car.png\")\nDUCK_PATH = os.path.join(DUCK_DIR, \"duck.png\")\n# Fallback sizes in case assets are missing\nDEFAULT_TILE_W, DEFAULT_TILE_H = 256, 256\n# ---------------------------------------------------------------------------",
+        "detail": "utils.image_generator",
+        "documentation": {}
+    },
+    {
+        "label": "DUCK_DIR",
+        "kind": 5,
+        "importPath": "utils.image_generator",
+        "description": "utils.image_generator",
+        "peekOfCode": "DUCK_DIR = os.path.join(ASSETS_DIR, \"duck_images\")\nGRASS_PATH = os.path.join(ROAD_DIR, \"Grass.png\")\nLANE_PATH = os.path.join(ROAD_DIR, \"road.png\")\nEND_PATH = os.path.join(ROAD_DIR, \"end.png\")  # finish lane image\nCAR_PATH = os.path.join(ROAD_DIR, \"car.png\")\nDUCK_PATH = os.path.join(DUCK_DIR, \"duck.png\")\n# Fallback sizes in case assets are missing\nDEFAULT_TILE_W, DEFAULT_TILE_H = 256, 256\n# ---------------------------------------------------------------------------\n# Image CDN helper (uploads a PIL image to a private channel and returns URL)",
+        "detail": "utils.image_generator",
+        "documentation": {}
+    },
+    {
+        "label": "GRASS_PATH",
+        "kind": 5,
+        "importPath": "utils.image_generator",
+        "description": "utils.image_generator",
+        "peekOfCode": "GRASS_PATH = os.path.join(ROAD_DIR, \"Grass.png\")\nLANE_PATH = os.path.join(ROAD_DIR, \"road.png\")\nEND_PATH = os.path.join(ROAD_DIR, \"end.png\")  # finish lane image\nCAR_PATH = os.path.join(ROAD_DIR, \"car.png\")\nDUCK_PATH = os.path.join(DUCK_DIR, \"duck.png\")\n# Fallback sizes in case assets are missing\nDEFAULT_TILE_W, DEFAULT_TILE_H = 256, 256\n# ---------------------------------------------------------------------------\n# Image CDN helper (uploads a PIL image to a private channel and returns URL)\n# ---------------------------------------------------------------------------",
+        "detail": "utils.image_generator",
+        "documentation": {}
+    },
+    {
+        "label": "LANE_PATH",
+        "kind": 5,
+        "importPath": "utils.image_generator",
+        "description": "utils.image_generator",
+        "peekOfCode": "LANE_PATH = os.path.join(ROAD_DIR, \"road.png\")\nEND_PATH = os.path.join(ROAD_DIR, \"end.png\")  # finish lane image\nCAR_PATH = os.path.join(ROAD_DIR, \"car.png\")\nDUCK_PATH = os.path.join(DUCK_DIR, \"duck.png\")\n# Fallback sizes in case assets are missing\nDEFAULT_TILE_W, DEFAULT_TILE_H = 256, 256\n# ---------------------------------------------------------------------------\n# Image CDN helper (uploads a PIL image to a private channel and returns URL)\n# ---------------------------------------------------------------------------\nasync def upload_frame_and_get_url(",
+        "detail": "utils.image_generator",
+        "documentation": {}
+    },
+    {
+        "label": "END_PATH",
+        "kind": 5,
+        "importPath": "utils.image_generator",
+        "description": "utils.image_generator",
+        "peekOfCode": "END_PATH = os.path.join(ROAD_DIR, \"end.png\")  # finish lane image\nCAR_PATH = os.path.join(ROAD_DIR, \"car.png\")\nDUCK_PATH = os.path.join(DUCK_DIR, \"duck.png\")\n# Fallback sizes in case assets are missing\nDEFAULT_TILE_W, DEFAULT_TILE_H = 256, 256\n# ---------------------------------------------------------------------------\n# Image CDN helper (uploads a PIL image to a private channel and returns URL)\n# ---------------------------------------------------------------------------\nasync def upload_frame_and_get_url(\n    bot: commands.Bot,",
+        "detail": "utils.image_generator",
+        "documentation": {}
+    },
+    {
+        "label": "CAR_PATH",
+        "kind": 5,
+        "importPath": "utils.image_generator",
+        "description": "utils.image_generator",
+        "peekOfCode": "CAR_PATH = os.path.join(ROAD_DIR, \"car.png\")\nDUCK_PATH = os.path.join(DUCK_DIR, \"duck.png\")\n# Fallback sizes in case assets are missing\nDEFAULT_TILE_W, DEFAULT_TILE_H = 256, 256\n# ---------------------------------------------------------------------------\n# Image CDN helper (uploads a PIL image to a private channel and returns URL)\n# ---------------------------------------------------------------------------\nasync def upload_frame_and_get_url(\n    bot: commands.Bot,\n    pil_img: Image.Image,",
+        "detail": "utils.image_generator",
+        "documentation": {}
+    },
+    {
+        "label": "DUCK_PATH",
+        "kind": 5,
+        "importPath": "utils.image_generator",
+        "description": "utils.image_generator",
+        "peekOfCode": "DUCK_PATH = os.path.join(DUCK_DIR, \"duck.png\")\n# Fallback sizes in case assets are missing\nDEFAULT_TILE_W, DEFAULT_TILE_H = 256, 256\n# ---------------------------------------------------------------------------\n# Image CDN helper (uploads a PIL image to a private channel and returns URL)\n# ---------------------------------------------------------------------------\nasync def upload_frame_and_get_url(\n    bot: commands.Bot,\n    pil_img: Image.Image,\n    filename: str,",
+        "detail": "utils.image_generator",
+        "documentation": {}
+    },
+    {
+        "label": "__all__",
+        "kind": 5,
+        "importPath": "utils.image_generator",
+        "description": "utils.image_generator",
+        "peekOfCode": "__all__ = [\n    \"generate_duck_game_image\",\n    \"upload_frame_and_get_url\",\n]",
         "detail": "utils.image_generator",
         "documentation": {}
     },

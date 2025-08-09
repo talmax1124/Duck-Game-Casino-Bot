@@ -72,16 +72,24 @@ async def _ack(interaction: discord.Interaction):
 # --- Single-message edit helper ---------------------------------------------
 async def _edit_message(msg: discord.Message, **kwargs):
     """Edit a message in place.
-    Pycord's Message.edit does not accept `files=...`; to change the image you must
-    pass `attachments=[discord.File(...), ...]`. This also replaces the existing
-    attachments so the image updates in-place.
+    Tries to replace attachments; if the library doesn't support passing files
+    during edit on this environment, gracefully falls back to editing only
+    text/components so the interaction doesn't crash.
     """
     files = kwargs.pop("files", None)
-    if files is not None:
-        # Replace existing attachments with the new files
-        await msg.edit(attachments=files, **kwargs)
-    else:
+    try:
+        if files is not None:
+            try:
+                # Some py-cord builds accept attachments=[discord.File, ...]
+                await msg.edit(attachments=files, **kwargs)
+                return
+            except TypeError:
+                # Fallback: edit without attachments (keeps existing image)
+                pass
         await msg.edit(**kwargs)
+    except Exception:
+        # Last-resort: swallow to prevent "This interaction failed" banners
+        pass
 
 #
 # Global async lock for bank.json to prevent race conditions across commands
@@ -156,12 +164,12 @@ class ModeSelectView(View):
 
         # mode_name -> (lanes, multipliers)
         self.modes = {
-            "Easy": (7, [1.10, 1.20, 1.35, 1.50, 1.70, 2.00, 2.40]),
-            "Medium": (5, [1.20, 1.50, 1.70, 2.00, 2.40]),
-            "Hard": (3, [1.50, 2.00, 3.00]),
+            "Easy": (7, [1.00, 1.05, 1.15, 1.80, 2.10, 2.15, 2.30]),
+            "Medium": (5, [1.05, 1.25, 1.70, 2.00, 2.40]),
+            "Hard": (3, [1.50, 2.25, 3.00]),
         }
 
-        self.easy_btn = Button(label="Easy", style=discord.ButtonStyle.primary)
+        self.easy_btn = Button(label="Easy", style=discord.ButtonStyle.success)
         self.med_btn = Button(label="Medium", style=discord.ButtonStyle.primary)
         self.hard_btn = Button(label="Hard", style=discord.ButtonStyle.danger)
 
@@ -272,15 +280,25 @@ class DuckGameView(View):
         self.amount = float(amount)
         self.position = start_position  # Start position (default grass = -1)
         self.hazard_pos = hazard_pos
-        self.session_wallet = self.amount  # session winnings seed (x1.0 at start); this is the staked amount
+
         self.wallet_before = float(wallet_before)
         self.wallet_after = float(wallet_after)
-        self.multiplier = multiplier
+        self.multiplier = float(multiplier)
         self.username = username
         self.multipliers = multipliers
         self.total_lanes = total_lanes
         self.live_message = live_message
         self.ended = False  # prevent double payout or multiple endings
+
+        # Compute session winnings correctly based on current position/multiplier.
+        # If this view was rebuilt while already on a lane, sync to that lane's multiplier.
+        if self.position >= 0:
+            if 0 <= self.position < len(self.multipliers):
+                self.multiplier = float(self.multipliers[self.position])
+            self.session_wallet = float(self.amount) * float(self.multiplier)
+        else:
+            # In grass, stake equals current session value (x1.0)
+            self.session_wallet = float(self.amount)
 
         # Controls: show only Forward while on grass (-1). Add Stop once on lanes.
         self.forward_button = Button(label="Forward", style=discord.ButtonStyle.success)
@@ -338,26 +356,36 @@ class DuckGameView(View):
                 self.multiplier = float(self.multipliers[-1])
             self.session_wallet = float(self.amount) * self.multiplier
             self.ended = True
+
             image = generate_duck_game_image(self.total_lanes, -1, [], total_slots=self.total_lanes)
             buffer = io.BytesIO(); image.save(buffer, format="PNG"); buffer.seek(0)
             file = discord.File(fp=buffer, filename="finish.png")
+
+            before_wallet = float(self.wallet_before)
+            after_wallet  = before_wallet - float(self.amount) + float(self.session_wallet)
+
             lock = await _get_bank_lock()
             async with lock:
                 bank_data = load_bank()
                 user_id = str(self.user.id)
                 bank_data.setdefault(user_id, {"wallet": 1000.0, "bank": 0.0, "game_active": False, "last_earn_ts": 0.0, "wins": 0, "losses": 0, "last_rob_ts": 0.0})
-                bank_data[user_id]["wallet"] += self.session_wallet
+
+                # Credit winnings and mark win exactly once
+                bank_data[user_id]["wallet"] = after_wallet
                 bank_data[user_id]["game_active"] = False
                 bank_data[user_id]["wins"] = int(bank_data[user_id].get("wins", 0)) + 1
                 update_bank(bank_data)
-            wallet = bank_data[user_id]["wallet"]; bank = bank_data[user_id]["bank"]
+
+                bank = float(bank_data[user_id]["bank"])
+
             await _edit_message(
                 self.live_message or interaction.message,
                 content=(
                     f"🎮 Player: {self.username}\n"
                     f"🏁 You reached the finish!\n"
                     f"Final Winnings: {fmt(self.session_wallet)} | Final Multiplier: x{self.multiplier:.2f}\n"
-                    f"💼 Wallet before bet: {fmt(self.wallet_before)} | After result: {fmt(wallet)} {fmt_delta_colored(wallet, self.wallet_before)} | 🏦 Bank: {fmt(bank)}"
+                    f"💼 Wallet before bet: {fmt(before_wallet)} | After result: {fmt(after_wallet)} "
+                    f"{fmt_delta_colored(after_wallet, before_wallet)} | 🏦 Bank: {fmt(bank)}"
                 ),
                 files=[file],
                 view=None,
@@ -370,26 +398,38 @@ class DuckGameView(View):
             image = generate_duck_game_image(self.position, self.hazard_pos, [], total_slots=self.total_lanes)
             buffer = io.BytesIO(); image.save(buffer, format="PNG"); buffer.seek(0)
             file = discord.File(fp=buffer, filename="crash.png")
+
+            before_wallet = float(self.wallet_before)
+            after_wallet  = before_wallet - float(self.amount)
+
             lock = await _get_bank_lock()
             async with lock:
                 bank_data = load_bank()
                 user_id = str(self.user.id)
                 bank_data.setdefault(user_id, {"wallet": 1000.0, "bank": 0.0, "game_active": False, "last_earn_ts": 0.0, "wins": 0, "losses": 0, "last_rob_ts": 0.0})
+
+                # Record loss exactly once and clear session
+                bank_data[user_id]["wallet"] = after_wallet
                 bank_data[user_id]["game_active"] = False
                 bank_data[user_id]["losses"] = int(bank_data[user_id].get("losses", 0)) + 1
                 update_bank(bank_data)
-            wallet = bank_data[user_id]["wallet"]; bank = bank_data[user_id]["bank"]
+
+                bank = float(bank_data[user_id]["bank"])
+
             self.session_wallet = 0.0
             self.ended = True
+
             remaining = self.multipliers[self.position + 1:]
             remain_txt = ", ".join([f"x{m:.2f}" for m in remaining]) if remaining else "None"
+
             await _edit_message(
                 self.live_message or interaction.message,
                 content=(
                     f"🎮 Player: {self.username}\n"
                     f"💥 The duck got hit by a car! You lost your stake.\n"
                     f"Current Winnings: {fmt(self.session_wallet)} | Multiplier: x{self.multiplier:.2f}\n"
-                    f"💼 Wallet before bet: {fmt(self.wallet_before)} | After result: {fmt(wallet)} {fmt_delta_colored(wallet, self.wallet_before)} | 🏦 Bank: {fmt(bank)}\n"
+                    f"💼 Wallet before bet: {fmt(before_wallet)} | After result: {fmt(after_wallet)} "
+                    f"{fmt_delta_colored(after_wallet, before_wallet)} | 🏦 Bank: {fmt(bank)}\n"
                     f"Remaining Multipliers: {remain_txt}"
                 ),
                 files=[file],
@@ -402,8 +442,15 @@ class DuckGameView(View):
         image = generate_duck_game_image(self.position, -1, [], total_slots=self.total_lanes)
         buffer = io.BytesIO(); image.save(buffer, format="PNG"); buffer.seek(0)
         file = discord.File(fp=buffer, filename="safe.png")
-        bank_data = load_bank(); user_id = str(self.user.id)
-        wallet = bank_data[user_id]["wallet"]; bank = bank_data[user_id]["bank"]
+
+        # Show the post-bet wallet we already computed at start, and correct delta vs before
+        before_wallet = float(self.wallet_before)
+        after_bet_wallet = float(self.wallet_after)
+
+        # Bank value (purely for display)
+        bank_data = load_bank()
+        bank = float(bank_data.get(str(self.user.id), {}).get("bank", 0.0))
+
         remaining = self.multipliers[self.position + 1:]
         remain_txt = ", ".join([f"x{m:.2f}" for m in remaining]) if remaining else "None"
 
@@ -421,15 +468,14 @@ class DuckGameView(View):
             live_message=self.live_message or interaction.message,
         )
 
-        # If the user just left grass (moved to lane 0), make sure Stop button appears in the next view
-        # (handled by DuckGameView.__init__ via position >= 0)
         await _edit_message(
             self.live_message or interaction.message,
             content=(
                 f"🎮 Player: {self.username}\n"
                 f"🦆 The duck moved forward safely!\n"
                 f"Current Winnings: {fmt(self.session_wallet)} | Multiplier: x{self.multiplier:.2f}\n"
-                f"💼 Wallet before bet: {fmt(self.wallet_before)} | After bet: {fmt(wallet)} {fmt_delta_colored(wallet, self.wallet_before)} | 🏦 Bank: {fmt(bank)}\n"
+                f"💼 Wallet before bet: {fmt(before_wallet)} | After bet: {fmt(after_bet_wallet)} "
+                f"{fmt_delta_colored(after_bet_wallet, before_wallet)} | 🏦 Bank: {fmt(bank)}\n"
                 f"Remaining Multipliers: {remain_txt}"
             ),
             files=[file],
@@ -451,23 +497,33 @@ class DuckGameView(View):
         # Disable buttons on the old message to avoid duplicate clicks
         await self._freeze_message(interaction)
         self.ended = True
+
+        # Ensure we apply the multiplier for the lane we're currently on.
+        if 0 <= self.position < len(self.multipliers):
+            self.multiplier = float(self.multipliers[self.position])
+        self.session_wallet = float(self.amount) * float(self.multiplier)
+
+        before_wallet = float(self.wallet_before)
+        after_wallet  = before_wallet - float(self.amount) + float(self.session_wallet)
+
         lock = await _get_bank_lock()
         async with lock:
             bank_data = load_bank()
             user_id = str(self.user.id)
-            if user_id not in bank_data:
-                bank_data[user_id] = {"wallet": 1000.0, "bank": 0.0, "game_active": False, "last_earn_ts": 0.0, "wins": 0, "losses": 0, "last_rob_ts": 0.0}
-            bank_data[user_id]["wallet"] += self.session_wallet
+            bank_data.setdefault(user_id, {"wallet": 1000.0, "bank": 0.0, "game_active": False, "last_earn_ts": 0.0, "wins": 0, "losses": 0, "last_rob_ts": 0.0})
+
+            bank_data[user_id]["wallet"] = after_wallet
             bank_data[user_id]["wins"] = int(bank_data[user_id].get("wins", 0)) + 1
             bank_data[user_id]["game_active"] = False
             update_bank(bank_data)
+
+            bank = float(bank_data[user_id]["bank"])
 
         self.clear_items()
         image = generate_duck_game_image(self.position, -1, [], total_slots=self.total_lanes)
         buffer = io.BytesIO(); image.save(buffer, format="PNG"); buffer.seek(0)
         file = discord.File(fp=buffer, filename="cashout.png")
 
-        wallet = bank_data[user_id]["wallet"]; bank = bank_data[user_id]["bank"]
         remaining = self.multipliers[self.position + 1:]
         remain_txt = ", ".join([f"x{m:.2f}" for m in remaining]) if remaining else "None"
 
@@ -477,7 +533,8 @@ class DuckGameView(View):
                 f"🎮 Player: {self.username}\n"
                 f"💰 You stopped the game and cashed out!\n"
                 f"Final Winnings: {fmt(self.session_wallet)} | Final Multiplier: x{self.multiplier:.2f}\n"
-                f"💼 Wallet before bet: {fmt(self.wallet_before)} | After result: {fmt(wallet)} {fmt_delta_colored(wallet, self.wallet_before)} | 🏦 Bank: {fmt(bank)}\n"
+                f"💼 Wallet before bet: {fmt(before_wallet)} | After result: {fmt(after_wallet)} "
+                f"{fmt_delta_colored(after_wallet, before_wallet)} | 🏦 Bank: {fmt(bank)}\n"
                 f"Remaining Multipliers: {remain_txt}"
             ),
             files=[file],
@@ -546,6 +603,83 @@ class DuckGame(Cog):
     def __init__(self, bot):
         self.bot = bot
         self.active_sessions = set()
+
+    @commands.command(name="testduck", help="Generate a sample Duck Game board image for testing.")
+    async def testduck_command(self, ctx: Context, lanes: int = 5):
+        """Quick sanity check: renders a board with the duck in grass and no hazards.
+        Usage: !testduck [lanes]
+        """
+        try:
+            image = generate_duck_game_image(-1, -1, [], total_slots=int(lanes))
+            buf = io.BytesIO(); image.save(buf, format="PNG"); buf.seek(0)
+            await ctx.send("🧪 Test board generated.", file=discord.File(buf, filename="test_board.png"))
+        except Exception as e:
+            await ctx.send(f"❌ Failed to generate test board: {e}")
+
+    @commands.command(name="testimage", help="Render a custom test board. Usage: !testimage [lanes] [pos] [hazard]")
+    async def testimage_command(self, ctx: Context, lanes: int = 5, pos: int = -1, hazard: int = -1):
+        """
+        Render a board with custom lane count, duck position, and hazard index.
+        lanes: total playable lanes (>=1)
+        pos: duck position (-1 for grass, 0..lanes for finish)
+        hazard: hazard lane index (-1 for none, 0..lanes-1 for a car on that lane)
+        """
+        try:
+            lanes = max(1, int(lanes))
+            # clamp pos into [-1, lanes] so finish is allowed
+            pos = max(-1, min(int(pos), lanes))
+            # clamp hazard into [-1, lanes-1]
+            hazard = int(hazard)
+            if hazard < -1 or hazard > lanes - 1:
+                hazard = -1
+
+            image = generate_duck_game_image(pos, hazard, [], total_slots=lanes)
+            buf = io.BytesIO()
+            image.save(buf, format="PNG")
+            buf.seek(0)
+            await ctx.send(
+                f"🧪 Test image generated. lanes={lanes}, pos={pos}, hazard={hazard}",
+                file=discord.File(buf, filename="test_board.png"),
+            )
+        except Exception as e:
+            await ctx.send(f"❌ Failed to generate test image: {e}")
+
+    @commands.command(name="testwin", help="DEV: Credit winnings to your wallet to verify accounting. Usage: !testwin <amount> <multiplier>")
+    async def testwin_command(self, ctx: Context, amount: float, multiplier: float):
+        """
+        DEV utility: Adds amount*multiplier to your wallet and shows before/after.
+        This does NOT require/affect an active game session; it's for verifying wallet crediting.
+        """
+        try:
+            amount = float(amount)
+            multiplier = float(multiplier)
+            if amount <= 0 or multiplier <= 0:
+                await ctx.send("❌ Amount and multiplier must be greater than 0.")
+                return
+        except Exception:
+            await ctx.send("❌ Usage: !testwin <amount> <multiplier>. Example: !testwin 100 2.4")
+            return
+
+        lock = await _get_bank_lock()
+        async with lock:
+            data = load_bank()
+            uid = str(ctx.author.id)
+            rec = data.setdefault(uid, {"wallet": 1000.0, "bank": 0.0, "game_active": False, "last_earn_ts": 0.0, "wins": 0, "losses": 0, "last_rob_ts": 0.0})
+            before = float(rec.get("wallet", 0.0))
+            winnings = float(amount) * float(multiplier)
+            rec["wallet"] = before + winnings
+            update_bank(data)
+            after = rec["wallet"]
+
+        await ctx.send(
+            f"🧪 Test win credited to {ctx.author.name}\n"
+            f"Amount: {fmt(amount)} × x{multiplier:.2f} = **{fmt(winnings)}**\n"
+            f"Wallet before: {fmt(before)} → after: {fmt(after)} {fmt_delta_colored(after, before)}"
+        )
+
+    @commands.command(name="ping", help="Bot latency check.")
+    async def ping_command(self, ctx: Context):
+        await ctx.send(f"🏓 Pong! Latency: {round(self.bot.latency*1000)}ms")
 
     @commands.command(name="duck", help="Start the Duck Game (choose a mode). Usage: !duck [amount|A|H]")
     async def duck_command(self, ctx: Context, amount: str):

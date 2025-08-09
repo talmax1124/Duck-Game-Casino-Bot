@@ -31,7 +31,7 @@ def get_duck_visual(
     labels: Optional[List[str]] = None,
     base_width: int = 100,
     duck_scale: float = 1.0,
-    car_scale: float = 0.5,
+    car_scale: float = 1.0,
     filename: str = "duck_game_status.gif",
 ) -> Optional[discord.File]:
     """
