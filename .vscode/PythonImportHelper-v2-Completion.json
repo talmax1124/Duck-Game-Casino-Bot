@@ -81,6 +81,14 @@
         "documentation": {}
     },
     {
+        "label": "upload_frame_and_get_url",
+        "importPath": "utils.image_generator",
+        "description": "utils.image_generator",
+        "isExtraImport": true,
+        "detail": "utils.image_generator",
+        "documentation": {}
+    },
+    {
         "label": "get_secure_hazard",
         "importPath": "utils.rng",
         "description": "utils.rng",
@@ -375,7 +383,7 @@
         "kind": 5,
         "importPath": "commands.duckgame",
         "description": "commands.duckgame",
-        "peekOfCode": "EARN_AMOUNT = 20_000.0\nCOOLDOWN_SECONDS = 3600.0\nimport discord\nfrom discord.ui import View, Button\nfrom discord.ext import commands\nfrom discord.ext.commands import Cog\nfrom discord.ext.commands import Context\nfrom utils.image_generator import generate_duck_game_image\nfrom utils.rng import get_secure_hazard\nimport io",
+        "peekOfCode": "EARN_AMOUNT = 20_000.0\nCOOLDOWN_SECONDS = 3600.0\nimport discord\nfrom discord.ui import View, Button\nfrom discord.ext import commands\nfrom discord.ext.commands import Cog\nfrom discord.ext.commands import Context\nfrom utils.image_generator import generate_duck_game_image, upload_frame_and_get_url\nfrom utils.rng import get_secure_hazard\nimport io",
         "detail": "commands.duckgame",
         "documentation": {}
     },
@@ -384,7 +392,7 @@
         "kind": 5,
         "importPath": "commands.duckgame",
         "description": "commands.duckgame",
-        "peekOfCode": "COOLDOWN_SECONDS = 3600.0\nimport discord\nfrom discord.ui import View, Button\nfrom discord.ext import commands\nfrom discord.ext.commands import Cog\nfrom discord.ext.commands import Context\nfrom utils.image_generator import generate_duck_game_image\nfrom utils.rng import get_secure_hazard\nimport io\nimport json",
+        "peekOfCode": "COOLDOWN_SECONDS = 3600.0\nimport discord\nfrom discord.ui import View, Button\nfrom discord.ext import commands\nfrom discord.ext.commands import Cog\nfrom discord.ext.commands import Context\nfrom utils.image_generator import generate_duck_game_image, upload_frame_and_get_url\nfrom utils.rng import get_secure_hazard\nimport io\nimport json",
         "detail": "commands.duckgame",
         "documentation": {}
     },

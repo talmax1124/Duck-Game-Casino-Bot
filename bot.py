@@ -51,7 +51,7 @@ async def on_ready():
 
     if channel:
         try:
-            await channel.send("Duck Game Bot is now online! Use `!help` to see commands.")
+            await channel.send("Duck Game Bot is now online! Use `!helpduck` to see commands.")
             _has_announced = True
         except Exception as e:
             log.warning("Failed to send online message: %s", e)

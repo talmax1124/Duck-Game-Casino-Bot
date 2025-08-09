@@ -12,7 +12,7 @@ from discord.ui import View, Button
 from discord.ext import commands
 from discord.ext.commands import Cog
 from discord.ext.commands import Context
-from utils.image_generator import generate_duck_game_image
+from utils.image_generator import generate_duck_game_image, upload_frame_and_get_url
 from utils.rng import get_secure_hazard
 
 import io
@@ -90,6 +90,25 @@ async def _edit_message(msg: discord.Message, **kwargs):
     except Exception:
         # Last-resort: swallow to prevent "This interaction failed" banners
         pass
+
+# --- Helper: upload PIL image to CDN and edit message with embed ------------
+async def _swap_with_embed(bot: commands.Bot, msg: discord.Message, pil_img, filename: str, content: str, view: discord.ui.View | None):
+    """
+    Upload PIL image to a CDN channel and edit `msg` with an embed that shows it.
+    This avoids passing attachments to Message.edit (which breaks on some py-cord builds).
+    Requires IMAGE_CDN_CHANNEL_ID env var and proper channel permissions.
+    """
+    try:
+        url, _ = await upload_frame_and_get_url(bot, pil_img, filename)
+        embed = discord.Embed()
+        embed.set_image(url=url)
+        await msg.edit(content=content, embed=embed, view=view)
+    except Exception:
+        # As a last resort, try to at least update text/view so the UI doesn't hang.
+        try:
+            await msg.edit(content=content, view=view)
+        except Exception:
+            pass
 
 #
 # Global async lock for bank.json to prevent race conditions across commands
@@ -208,6 +227,17 @@ class ModeSelectView(View):
         # Mark this view as started so additional clicks do nothing
         self.started = True
 
+        # Disable all three mode buttons before any awaits
+        for item in self.children:
+            try:
+                item.disabled = True
+            except Exception:
+                pass
+        try:
+            await interaction.message.edit(view=self)
+        except Exception:
+            pass
+
         total_lanes, multipliers = self.modes[label]
         # Exclude the last regular lane from hazards; finish (lane N) is always clear
         hazard_pos = get_secure_hazard(total_lanes - 1)
@@ -226,8 +256,6 @@ class ModeSelectView(View):
 
         # Initial board: duck in grass (-1), no hazard shown yet
         image = generate_duck_game_image(-1, -1, [], total_slots=total_lanes)
-        buffer = io.BytesIO(); image.save(buffer, format="PNG"); buffer.seek(0)
-        file = discord.File(fp=buffer, filename="mode_start.png")
 
         # Use the selector message as the live game message; no extra sends/deletes
         msg = interaction.message
@@ -235,17 +263,20 @@ class ModeSelectView(View):
         self.live_message = msg
 
         remaining_text = ", ".join([f"x{m:.2f}" for m in multipliers])
-        await _edit_message(
+        content = (
+            f"🎮 Player: {self.username}\n"
+            f"🦆 Mode selected: **{label}** ({total_lanes} lanes)\n"
+            f"Current Winnings: {fmt(self.amount)} | Multiplier: x1.00\n"
+            f"Remaining Multipliers: {remaining_text}\n"
+            f"💼 Wallet before bet: {fmt(self.wallet_before)} | After bet: {fmt(self.wallet_after)}"
+        )
+        await _swap_with_embed(
+            interaction.client,
             msg,
-            content=(
-                f"🎮 Player: {self.username}\n"
-                f"🦆 Mode selected: **{label}** ({total_lanes} lanes)\n"
-                f"Current Winnings: {fmt(self.amount)} | Multiplier: x1.00\n"
-                f"Remaining Multipliers: {remaining_text}\n"
-                f"💼 Wallet before bet: {fmt(self.wallet_before)} | After bet: {fmt(self.wallet_after)}"
-            ),
-            files=[file],
-            view=view,
+            image,
+            "mode_start.png",
+            content,
+            view,
         )
 
     async def _choose_easy(self, interaction: discord.Interaction):
@@ -358,8 +389,6 @@ class DuckGameView(View):
             self.ended = True
 
             image = generate_duck_game_image(self.total_lanes, -1, [], total_slots=self.total_lanes)
-            buffer = io.BytesIO(); image.save(buffer, format="PNG"); buffer.seek(0)
-            file = discord.File(fp=buffer, filename="finish.png")
 
             before_wallet = float(self.wallet_before)
             after_wallet  = before_wallet - float(self.amount) + float(self.session_wallet)
@@ -378,17 +407,20 @@ class DuckGameView(View):
 
                 bank = float(bank_data[user_id]["bank"])
 
-            await _edit_message(
+            content = (
+                f"🎮 Player: {self.username}\n"
+                f"🏁 You reached the finish!\n"
+                f"Final Winnings: {fmt(self.session_wallet)} | Final Multiplier: x{self.multiplier:.2f}\n"
+                f"💼 Wallet before bet: {fmt(before_wallet)} | After result: {fmt(after_wallet)} "
+                f"{fmt_delta_colored(after_wallet, before_wallet)} | 🏦 Bank: {fmt(bank)}"
+            )
+            await _swap_with_embed(
+                interaction.client,
                 self.live_message or interaction.message,
-                content=(
-                    f"🎮 Player: {self.username}\n"
-                    f"🏁 You reached the finish!\n"
-                    f"Final Winnings: {fmt(self.session_wallet)} | Final Multiplier: x{self.multiplier:.2f}\n"
-                    f"💼 Wallet before bet: {fmt(before_wallet)} | After result: {fmt(after_wallet)} "
-                    f"{fmt_delta_colored(after_wallet, before_wallet)} | 🏦 Bank: {fmt(bank)}"
-                ),
-                files=[file],
-                view=None,
+                image,
+                "finish.png",
+                content,
+                None,
             )
             interaction.client.get_cog("DuckGame").active_sessions.discard(self.user.id)
             return
@@ -396,8 +428,6 @@ class DuckGameView(View):
         # Crash if we hit the hazard lane
         if self.position == self.hazard_pos:
             image = generate_duck_game_image(self.position, self.hazard_pos, [], total_slots=self.total_lanes)
-            buffer = io.BytesIO(); image.save(buffer, format="PNG"); buffer.seek(0)
-            file = discord.File(fp=buffer, filename="crash.png")
 
             before_wallet = float(self.wallet_before)
             after_wallet  = before_wallet - float(self.amount)
@@ -422,26 +452,27 @@ class DuckGameView(View):
             remaining = self.multipliers[self.position + 1:]
             remain_txt = ", ".join([f"x{m:.2f}" for m in remaining]) if remaining else "None"
 
-            await _edit_message(
+            content = (
+                f"🎮 Player: {self.username}\n"
+                f"💥 The duck got hit by a car! You lost your stake.\n"
+                f"Current Winnings: {fmt(self.session_wallet)} | Multiplier: x{self.multiplier:.2f}\n"
+                f"💼 Wallet before bet: {fmt(before_wallet)} | After result: {fmt(after_wallet)} "
+                f"{fmt_delta_colored(after_wallet, before_wallet)} | 🏦 Bank: {fmt(bank)}\n"
+                f"Remaining Multipliers: {remain_txt}"
+            )
+            await _swap_with_embed(
+                interaction.client,
                 self.live_message or interaction.message,
-                content=(
-                    f"🎮 Player: {self.username}\n"
-                    f"💥 The duck got hit by a car! You lost your stake.\n"
-                    f"Current Winnings: {fmt(self.session_wallet)} | Multiplier: x{self.multiplier:.2f}\n"
-                    f"💼 Wallet before bet: {fmt(before_wallet)} | After result: {fmt(after_wallet)} "
-                    f"{fmt_delta_colored(after_wallet, before_wallet)} | 🏦 Bank: {fmt(bank)}\n"
-                    f"Remaining Multipliers: {remain_txt}"
-                ),
-                files=[file],
-                view=None,
+                image,
+                "crash.png",
+                content,
+                None,
             )
             interaction.client.get_cog("DuckGame").active_sessions.discard(self.user.id)
             return
 
         # Safe move within lanes
         image = generate_duck_game_image(self.position, -1, [], total_slots=self.total_lanes)
-        buffer = io.BytesIO(); image.save(buffer, format="PNG"); buffer.seek(0)
-        file = discord.File(fp=buffer, filename="safe.png")
 
         # Show the post-bet wallet we already computed at start, and correct delta vs before
         before_wallet = float(self.wallet_before)
@@ -468,18 +499,21 @@ class DuckGameView(View):
             live_message=self.live_message or interaction.message,
         )
 
-        await _edit_message(
+        content = (
+            f"🎮 Player: {self.username}\n"
+            f"🦆 The duck moved forward safely!\n"
+            f"Current Winnings: {fmt(self.session_wallet)} | Multiplier: x{self.multiplier:.2f}\n"
+            f"💼 Wallet before bet: {fmt(before_wallet)} | After bet: {fmt(after_bet_wallet)} "
+            f"{fmt_delta_colored(after_bet_wallet, before_wallet)} | 🏦 Bank: {fmt(bank)}\n"
+            f"Remaining Multipliers: {remain_txt}"
+        )
+        await _swap_with_embed(
+            interaction.client,
             self.live_message or interaction.message,
-            content=(
-                f"🎮 Player: {self.username}\n"
-                f"🦆 The duck moved forward safely!\n"
-                f"Current Winnings: {fmt(self.session_wallet)} | Multiplier: x{self.multiplier:.2f}\n"
-                f"💼 Wallet before bet: {fmt(before_wallet)} | After bet: {fmt(after_bet_wallet)} "
-                f"{fmt_delta_colored(after_bet_wallet, before_wallet)} | 🏦 Bank: {fmt(bank)}\n"
-                f"Remaining Multipliers: {remain_txt}"
-            ),
-            files=[file],
-            view=new_view,
+            image,
+            "safe.png",
+            content,
+            new_view,
         )
         new_view.live_message = self.live_message or interaction.message
 
@@ -521,24 +555,25 @@ class DuckGameView(View):
 
         self.clear_items()
         image = generate_duck_game_image(self.position, -1, [], total_slots=self.total_lanes)
-        buffer = io.BytesIO(); image.save(buffer, format="PNG"); buffer.seek(0)
-        file = discord.File(fp=buffer, filename="cashout.png")
 
         remaining = self.multipliers[self.position + 1:]
         remain_txt = ", ".join([f"x{m:.2f}" for m in remaining]) if remaining else "None"
 
-        await _edit_message(
+        content = (
+            f"🎮 Player: {self.username}\n"
+            f"💰 You stopped the game and cashed out!\n"
+            f"Final Winnings: {fmt(self.session_wallet)} | Final Multiplier: x{self.multiplier:.2f}\n"
+            f"💼 Wallet before bet: {fmt(before_wallet)} | After result: {fmt(after_wallet)} "
+            f"{fmt_delta_colored(after_wallet, before_wallet)} | 🏦 Bank: {fmt(bank)}\n"
+            f"Remaining Multipliers: {remain_txt}"
+        )
+        await _swap_with_embed(
+            interaction.client,
             self.live_message or interaction.message,
-            content=(
-                f"🎮 Player: {self.username}\n"
-                f"💰 You stopped the game and cashed out!\n"
-                f"Final Winnings: {fmt(self.session_wallet)} | Final Multiplier: x{self.multiplier:.2f}\n"
-                f"💼 Wallet before bet: {fmt(before_wallet)} | After result: {fmt(after_wallet)} "
-                f"{fmt_delta_colored(after_wallet, before_wallet)} | 🏦 Bank: {fmt(bank)}\n"
-                f"Remaining Multipliers: {remain_txt}"
-            ),
-            files=[file],
-            view=None,
+            image,
+            "cashout.png",
+            content,
+            None,
         )
         interaction.client.get_cog("DuckGame").active_sessions.discard(self.user.id)
 
