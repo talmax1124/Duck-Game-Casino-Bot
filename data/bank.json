@@ -1,42 +1,68 @@
 {
     "466050111680544798": {
-        "wallet": 2690712.5,
+        "wallet": 9.393993939933939e+33,
         "bank": 240000.0,
-        "game_active": false
+        "game_active": false,
+        "last_earn_ts": 1754707755.927018
     },
     "824094955571380234": {
-        "wallet": 100000000000.0,
+        "wallet": 40322819303.0,
         "bank": 0.0,
-        "game_active": false
+        "game_active": false,
+        "last_earn_ts": 1754707144.563506
     },
     "1156391669533528084": {
-        "wallet": 1597758482329.6,
+        "wallet": 4301024020342.0,
         "bank": 0.0,
-        "game_active": false
+        "game_active": false,
+        "last_earn_ts": 0.0
     },
     "858869182824972298": {
         "wallet": 0.0,
         "bank": 0.0,
-        "game_active": false
+        "game_active": false,
+        "last_earn_ts": 1754706201.4393768
     },
     "528841666526838785": {
         "wallet": 3494799.5,
         "bank": 0.0,
-        "game_active": false
+        "game_active": false,
+        "last_earn_ts": 0.0
     },
     "1132528200950480926": {
         "wallet": 1484933022244121.0,
         "bank": 100170.0,
-        "game_active": false
+        "game_active": false,
+        "last_earn_ts": 0.0
     },
     "573227457717469184": {
         "wallet": 770.0,
         "bank": 0.0,
-        "game_active": false
+        "game_active": false,
+        "last_earn_ts": 0.0
     },
     "1326438668591829068": {
         "wallet": 484933021244221.0,
         "bank": 0.0,
-        "game_active": false
+        "game_active": false,
+        "last_earn_ts": 0.0
+    },
+    "1275301861490036767": {
+        "wallet": 48512500.0,
+        "bank": 0.0,
+        "game_active": false,
+        "last_earn_ts": 1754707159.274352
+    },
+    "1009220009739960411": {
+        "wallet": 0.0,
+        "bank": 0.0,
+        "game_active": false,
+        "last_earn_ts": 1754707767.465353
+    },
+    "324572752688185344": {
+        "wallet": 20895.0,
+        "bank": 0.0,
+        "game_active": false,
+        "last_earn_ts": 1754707907.058589
     }
 }

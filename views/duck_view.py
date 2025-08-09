@@ -1,63 +1,34 @@
-from PIL import Image, ImageDraw, ImageFont
+from discord.ui import Button
+import discord
 
+class DuckGameView(...):
+    def __init__(self, ..., start_position=-1):
+        ...
+        self.position = start_position
+        # Controls: only Forward on grass (-1); add Stop once on first lane or beyond
+        self.forward_button = Button(label="Forward", style=discord.ButtonStyle.success)
+        self.forward_button.callback = self.forward_button_callback
+        self.add_item(self.forward_button)
 
-def generate_duck_game_image(position, hazard, duck_path, car_path, road_path, grass_path, bank=0, multiplier=1, save=False, game_started=False):
-    tile_width = 150
-    tile_height = 200
-    steps = 6
-    total_width = tile_width * steps
-    total_height = tile_height + 100  # Further increased for full canvas visibility
+        self.stop_button = Button(label="Stop", style=discord.ButtonStyle.danger)
+        self.stop_button.callback = self.stop_button_callback
+        if self.position >= 0:
+            self.add_item(self.stop_button)
+        ...
 
-    background = Image.new("RGBA", (total_width, total_height), (0, 0, 0, 255))
+    async def forward_button_callback(self, interaction):
+        await _ack(interaction)
+        # existing owner check and other code...
 
-    try:
-        road_tile = Image.open(road_path).resize((tile_width, tile_height))
-    except Exception as e:
-        raise
-    try:
-        grass_tile = Image.open(grass_path).resize((tile_width, tile_height))
-    except Exception as e:
-        raise
-    try:
-        duck = Image.open(duck_path).convert("RGBA").resize((tile_width, tile_height))
-    except Exception as e:
-        raise
-    try:
-        car = Image.open(car_path).convert("RGBA").resize((tile_width, tile_height))
-    except Exception as e:
-        raise
+        # Reached/passed finish: position index is total_lanes (grass=-1, lanes 0..N-1, finish=N)
+        if self.position >= self.total_lanes:
+            if self.multipliers:
+                self.multiplier = float(self.multipliers[-1])  # final multiplier
+            # winnings are based on the original stake (amount), not bank
+            self.session_wallet = float(self.amount) * self.multiplier
 
-    if not game_started:
-        for i in range(steps + 1):
-            background.paste(grass_tile, (i * tile_width, 0))
-    else:
-        for i in range(steps):
-            background.paste(road_tile, (i * tile_width, 0))
-        background.paste(grass_tile, (0, 0))
+        # existing code continues...
 
-    if hazard >= 0 and hazard < steps and position == hazard:
-        background.paste(car, (hazard * tile_width, 0), car)
-
-
-    if position == -1:
-        background.paste(grass_tile, (0, 0))
-        background.paste(duck, (0, 0), duck)
-    elif 0 <= position < steps:
-        background.paste(duck, (position * tile_width, 0), duck)
-
-    draw = ImageDraw.Draw(background)
-    try:
-        font = ImageFont.truetype("arial.ttf", 24)
-    except:
-        font = ImageFont.load_default()
-
-    draw.rectangle([(5, tile_height + 20), (250, tile_height + 70)], fill=(0, 0, 0, 180))
-    draw.text((10, tile_height + 25), f"Bank: ${bank}", font=font, fill=(255, 255, 255, 255))
-    draw.text((10, tile_height + 45), f"Multiplier: x{multiplier}", font=font, fill=(255, 255, 255, 255))
-
-    if save:
-        output_path = f"assets/generated/duck_game_pos{position}_haz{hazard}.png"
-        background.save(output_path)
-        return output_path
-    else:
-        return background
+        # In safe-move branch, where new view is created:
+        new_view = DuckGameView(..., start_position=self.position)
+        # existing code continues...

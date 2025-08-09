@@ -1,79 +1,111 @@
-import logging
 from PIL import Image
 from typing import List
+import os
 
-def generate_duck_game_image(position: int, hazard_pos: int, previous_positions: List[int]) -> Image.Image:
+# Simple cache to avoid reloading assets repeatedly
+_IMG_CACHE = {}
+
+def _load_img(path: str) -> Image.Image:
+    if path in _IMG_CACHE:
+        return _IMG_CACHE[path]
+    img = Image.open(path).convert("RGBA")
+    _IMG_CACHE[path] = img
+    return img
+
+
+def generate_duck_game_image(
+    position: int,
+    hazard_pos: int,
+    previous_positions: List[int],
+    *,
+    total_slots: int = 5,
+    show_hazard: bool = True,
+) -> Image.Image:
     """
-    Generate a horizontal scene: [GRASS] [LANE0] [LANE1] [LANE2] [LANE3] [LANE4] [EXTRA PAD]
-    - position: -1 for grass start, 0..4 for lane index, >=5 means passed final lane (draw on extra pad)
-    - hazard_pos: 0..4 for the lane containing the car hazard; outside that range -> no car
-    - previous_positions: unused here (kept for signature compatibility)
+    Generate a horizontal scene with variable lanes and a finish tile:
+      [GRASS] [LANE 0] ... [LANE N-1] [FINISH]
+
+    Args:
+        position: -1 for grass start, 0..total_slots-1 for lane index,
+                  >= total_slots means draw on the finish lane.
+        hazard_pos: 0..total_slots-1 for the lane containing the car hazard; any other value -> no car.
+        previous_positions: kept for signature compatibility (unused here).
+        total_slots: number of playable road lanes (excludes grass and finish lane).
+        show_hazard: if False, never draw the car; if True, draw car only when hazard_pos is within 0..total_slots-1.
     """
-    # Load images
-    road = Image.open("assets/road/road.png").convert("RGBA")
-    grass = Image.open("assets/road/Grass.png").convert("RGBA")
-    duck = Image.open("assets/duck_images/duck.png").convert("RGBA")
-    car = Image.open("assets/road/car.png").convert("RGBA")
-    # Rotate car to face "across" the lanes and scale down
-    car = car.rotate(270, expand=True)
-    car = car.resize((car.width // 8, car.height // 8))
+    # Load assets
+    road = _load_img("assets/road/road.png")
+    grass = _load_img("assets/road/Grass.png")
+    duck = _load_img("assets/duck_images/duck.png")
+    car = _load_img("assets/road/car.png")
+    finish = _load_img("assets/road/end.png") if os.path.exists("assets/road/end.png") else road
 
-    # Constants
-    total_slots = 5  # number of road lanes
-    lane_width = road.width          # width of each road tile
-    lane_height = road.height
-    grass_width = grass.width        # actual width of the grass column
-    grass_height = grass.height
-    extra_pad_width = lane_width     # extra space to show duck beyond last lane
+    # Normalize sizes based on road tile
+    lane_w, lane_h = road.width, road.height
 
-    # Canvas size: grass + all lanes + one extra pad
-    canvas_width = grass_width + (total_slots * lane_width) + extra_pad_width
-    canvas_height = int(max(grass_height, lane_height, duck.height, car.height) * 1.1)
-    canvas = Image.new("RGBA", (canvas_width, canvas_height))
+    # Resize grass/finish to lane box
+    if grass.height != lane_h:
+        grass = grass.resize((grass.width, lane_h))
+    if finish.size != (lane_w, lane_h):
+        finish = finish.resize((lane_w, lane_h))
 
-    # Paste grass at the left, bottom-aligned
-    canvas.paste(grass, (0, canvas_height - grass_height))
+    # Canvas size: grass + N lanes + finish + small padding
+    right_pad = int(lane_w * 0.15)
+    canvas_w = grass.width + total_slots * lane_w + finish.width + right_pad
+    canvas_h = max(lane_h, duck.height)
+    canvas = Image.new("RGBA", (canvas_w, canvas_h), (18, 18, 18, 255))
 
-    # Paste lanes horizontally after the grass, bottom-aligned
+    # Paste grass at left, bottom-aligned
+    canvas.paste(grass, (0, canvas_h - grass.height), grass)
+
+    # Paste lanes after grass
+    base_x = grass.width
     for i in range(total_slots):
-        x = grass_width + (i * lane_width)
-        canvas.paste(road, (x, canvas_height - lane_height))
+        x = base_x + i * lane_w
+        canvas.paste(road, (x, canvas_h - lane_h), road)
 
-    # Paste one extra road tile in the extra pad area, bottom-aligned
-    extra_x = grass_width + (total_slots * lane_width)
-    canvas.paste(road, (extra_x, canvas_height - lane_height))
+    # Paste finish lane
+    finish_x = base_x + total_slots * lane_w
+    canvas.paste(finish, (finish_x, canvas_h - lane_h), finish)
 
-    # Helper: center X for a given lane index (-1 = grass, 0..4 = lanes, 5 = extra pad)
+    # Helper: center X for a given logical index
+    # -1 = grass, 0..total_slots-1 = lanes, total_slots or more = finish
     def center_x_for_index(idx: int) -> int:
-        if idx == -1:
-            # Grass column center
-            return grass_width // 2
+        if idx < 0:
+            return grass.width // 2
         if 0 <= idx < total_slots:
-            left = grass_width + (idx * lane_width)
-            return left + (lane_width // 2)
-        # Beyond final lane -> extra pad center
-        extra_left = grass_width + (total_slots * lane_width)
-        return extra_left + (extra_pad_width // 2)
+            left = base_x + idx * lane_w
+            return left + lane_w // 2
+        return finish_x + lane_w // 2
 
-    # ---- Place DUCK, centered in its lane (or grass) ----
-    # Determine the logical index to use for centering
+    # Scale sprites relative to lane height (smaller: 1/8 of lane height)
+    duck_h = int(lane_h / 8)
+    duck_w = max(1, int(duck.width * (duck_h / max(1, duck.height))))
+    duck_img = duck.resize((duck_w, duck_h), Image.LANCZOS)
+
+    car_h = int(lane_h / 8)
+    car_w = max(1, int(car.width * (car_h / max(1, car.height))))
+    # Rotate car to face across lanes (90 degrees)
+    car_img = car.resize((car_w, car_h), Image.LANCZOS).rotate(270, expand=True)
+
+    # ---- Place CAR (hazard) only if requested and within lanes ----
+    if show_hazard and 0 <= hazard_pos < total_slots:
+        car_center_x = center_x_for_index(hazard_pos)
+        car_x = int(car_center_x - car_img.width / 2)
+        car_y = canvas_h - lane_h + (lane_h - car_img.height) // 2
+        canvas.paste(car_img, (car_x, car_y), car_img)
+
+    # ---- Place DUCK ----
     if position <= -1:
         duck_idx = -1
     elif 0 <= position < total_slots:
         duck_idx = position
     else:
-        duck_idx = total_slots  # beyond last lane -> extra pad
+        duck_idx = total_slots  # draw on finish lane
 
     duck_center_x = center_x_for_index(duck_idx)
-    duck_x = int(duck_center_x - duck.width / 2)
-    duck_y = canvas_height - duck.height
-    canvas.paste(duck, (duck_x, duck_y), duck)
-
-    # ---- Place CAR (hazard), centered in its lane, only if hazard_pos is a valid lane ----
-    if 0 <= hazard_pos < total_slots:
-        car_center_x = center_x_for_index(hazard_pos)
-        car_x = int(car_center_x - car.width / 2)
-        car_y = canvas_height - car.height
-        canvas.paste(car, (car_x, car_y), car)
+    duck_x = int(duck_center_x - duck_img.width / 2)
+    duck_y = canvas_h - duck_img.height  # bottom align
+    canvas.paste(duck_img, (duck_x, duck_y), duck_img)
 
     return canvas

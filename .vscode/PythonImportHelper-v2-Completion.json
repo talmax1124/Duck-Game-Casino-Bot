@@ -25,6 +25,14 @@
         "documentation": {}
     },
     {
+        "label": "Button",
+        "importPath": "discord.ui",
+        "description": "discord.ui",
+        "isExtraImport": true,
+        "detail": "discord.ui",
+        "documentation": {}
+    },
+    {
         "label": "commands",
         "importPath": "discord.ext",
         "description": "discord.ext",
@@ -57,22 +65,6 @@
         "documentation": {}
     },
     {
-        "label": "cooldown",
-        "importPath": "discord.ext.commands",
-        "description": "discord.ext.commands",
-        "isExtraImport": true,
-        "detail": "discord.ext.commands",
-        "documentation": {}
-    },
-    {
-        "label": "BucketType",
-        "importPath": "discord.ext.commands",
-        "description": "discord.ext.commands",
-        "isExtraImport": true,
-        "detail": "discord.ext.commands",
-        "documentation": {}
-    },
-    {
         "label": "generate_duck_game_image",
         "importPath": "utils.image_generator",
         "description": "utils.image_generator",
@@ -81,12 +73,11 @@
         "documentation": {}
     },
     {
-        "label": "random",
-        "kind": 6,
+        "label": "get_secure_hazard",
+        "importPath": "utils.rng",
+        "description": "utils.rng",
         "isExtraImport": true,
-        "importPath": "random",
-        "description": "random",
-        "detail": "random",
+        "detail": "utils.rng",
         "documentation": {}
     },
     {
@@ -126,68 +117,53 @@
         "documentation": {}
     },
     {
-        "label": "Image",
-        "importPath": "PIL",
-        "description": "PIL",
-        "isExtraImport": true,
-        "detail": "PIL",
-        "documentation": {}
-    },
-    {
-        "label": "ImageDraw",
-        "importPath": "PIL",
-        "description": "PIL",
-        "isExtraImport": true,
-        "detail": "PIL",
-        "documentation": {}
-    },
-    {
-        "label": "ImageFont",
-        "importPath": "PIL",
-        "description": "PIL",
-        "isExtraImport": true,
-        "detail": "PIL",
-        "documentation": {}
-    },
-    {
-        "label": "Image",
-        "importPath": "PIL",
-        "description": "PIL",
-        "isExtraImport": true,
-        "detail": "PIL",
-        "documentation": {}
-    },
-    {
-        "label": "Image",
-        "importPath": "PIL",
-        "description": "PIL",
-        "isExtraImport": true,
-        "detail": "PIL",
-        "documentation": {}
-    },
-    {
-        "label": "ImageDraw",
-        "importPath": "PIL",
-        "description": "PIL",
-        "isExtraImport": true,
-        "detail": "PIL",
-        "documentation": {}
-    },
-    {
-        "label": "ImageFont",
-        "importPath": "PIL",
-        "description": "PIL",
-        "isExtraImport": true,
-        "detail": "PIL",
-        "documentation": {}
-    },
-    {
-        "label": "logging",
+        "label": "asyncio",
         "kind": 6,
         "isExtraImport": true,
-        "importPath": "logging",
-        "description": "logging",
-        "detail": "logging",
+        "importPath": "asyncio",
+        "description": "asyncio",
+        "detail": "asyncio",
+        "documentation": {}
+    },
+    {
+        "label": "time",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "time",
+        "description": "time",
+        "detail": "time",
+        "documentation": {}
+    },
+    {
+        "label": "Image",
+        "importPath": "PIL",
+        "description": "PIL",
+        "isExtraImport": true,
+        "detail": "PIL",
+        "documentation": {}
+    },
+    {
+        "label": "ImageDraw",
+        "importPath": "PIL",
+        "description": "PIL",
+        "isExtraImport": true,
+        "detail": "PIL",
+        "documentation": {}
+    },
+    {
+        "label": "ImageFont",
+        "importPath": "PIL",
+        "description": "PIL",
+        "isExtraImport": true,
+        "detail": "PIL",
+        "documentation": {}
+    },
+    {
+        "label": "Image",
+        "importPath": "PIL",
+        "description": "PIL",
+        "isExtraImport": true,
+        "detail": "PIL",
         "documentation": {}
     },
     {
@@ -196,6 +172,47 @@
         "description": "typing",
         "isExtraImport": true,
         "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Optional",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Tuple",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "List",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Optional",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "threading",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "threading",
+        "description": "threading",
+        "detail": "threading",
         "documentation": {}
     },
     {
@@ -208,12 +225,12 @@
         "documentation": {}
     },
     {
-        "label": "asyncio",
+        "label": "logging",
         "kind": 6,
         "isExtraImport": true,
-        "importPath": "asyncio",
-        "description": "asyncio",
-        "detail": "asyncio",
+        "importPath": "logging",
+        "description": "logging",
+        "detail": "logging",
         "documentation": {}
     },
     {
@@ -225,11 +242,20 @@
         "documentation": {}
     },
     {
+        "label": "ModeSelectView",
+        "kind": 6,
+        "importPath": "commands.duckgame",
+        "description": "commands.duckgame",
+        "peekOfCode": "class ModeSelectView(View):\n    \"\"\"Mode picker for Easy/Medium/Hard; transitions to the live game view.\"\"\"\n    def __init__(self, user, amount, wallet_after, username):\n        super().__init__(timeout=None)\n        self.user = user\n        self.amount = float(amount)\n        self.wallet_after = wallet_after\n        self.wallet_before = float(wallet_after) + float(amount)\n        self.username = username\n        self.started = False  # prevent multiple sessions from the same mode panel",
+        "detail": "commands.duckgame",
+        "documentation": {}
+    },
+    {
         "label": "DuckGameView",
         "kind": 6,
         "importPath": "commands.duckgame",
         "description": "commands.duckgame",
-        "peekOfCode": "class DuckGameView(View):\n    def __init__(self, user, amount, wallet, multiplier, username):\n        super().__init__(timeout=None)\n        self.user = user\n        self.amount = float(amount)\n        self.position = -1  # Start duck in the grass\n        self.hazard_pos = None\n        self.started = False\n        self.session_wallet = self.amount  # session wallet to track current winnings\n        self.wallet = wallet  # user's real wallet (static during game)",
+        "peekOfCode": "class DuckGameView(View):\n    \"\"\"Live game view with Forward/Stop; edits a single message in place.\"\"\"\n    def __init__(\n        self,\n        user,\n        amount,\n        wallet_before,\n        wallet_after,\n        multiplier,\n        username,",
         "detail": "commands.duckgame",
         "documentation": {}
     },
@@ -238,7 +264,34 @@
         "kind": 6,
         "importPath": "commands.duckgame",
         "description": "commands.duckgame",
-        "peekOfCode": "class DuckGame(Cog):\n    def __init__(self, bot):\n        self.bot = bot\n        self.active_sessions = set()\n    @commands.command(name=\"duckgame\", help=\"Start the Duck Game!\")\n    async def duckgame_command(self, ctx: Context, amount: str):\n        bank_data = load_bank()\n        user_id = str(ctx.author.id)\n        if user_id not in bank_data:\n            bank_data[user_id] = {\"wallet\": 1000.0, \"bank\": 0.0, \"game_active\": False}",
+        "peekOfCode": "class DuckGame(Cog):\n    def __init__(self, bot):\n        self.bot = bot\n        self.active_sessions = set()\n    @commands.command(name=\"duck\", help=\"Start the Duck Game (choose a mode). Usage: !duck [amount|A|H]\")\n    async def duck_command(self, ctx: Context, amount: str):\n        bank_data = load_bank()\n        user_id = str(ctx.author.id)\n        if user_id not in bank_data:\n            bank_data[user_id] = {\"wallet\": 1000.0, \"bank\": 0.0, \"game_active\": False, \"last_earn_ts\": 0.0}",
+        "detail": "commands.duckgame",
+        "documentation": {}
+    },
+    {
+        "label": "fmt",
+        "kind": 2,
+        "importPath": "commands.duckgame",
+        "description": "commands.duckgame",
+        "peekOfCode": "def fmt(amount: float) -> str:\n    try:\n        return f\"${float(amount):,.2f}\"\n    except Exception:\n        return f\"${amount}\"\ndef fmt_delta(after: float, before: float) -> str:\n    try:\n        delta = float(after) - float(before)\n        sign = \"+\" if delta >= 0 else \"-\"\n        return f\"({sign}{abs(delta):,.2f})\"",
+        "detail": "commands.duckgame",
+        "documentation": {}
+    },
+    {
+        "label": "fmt_delta",
+        "kind": 2,
+        "importPath": "commands.duckgame",
+        "description": "commands.duckgame",
+        "peekOfCode": "def fmt_delta(after: float, before: float) -> str:\n    try:\n        delta = float(after) - float(before)\n        sign = \"+\" if delta >= 0 else \"-\"\n        return f\"({sign}{abs(delta):,.2f})\"\n    except Exception:\n        return \"\"\n# --- Colored delta formatting -------------------------------------------------\ndef fmt_delta_colored(after: float, before: float) -> str:\n    try:",
+        "detail": "commands.duckgame",
+        "documentation": {}
+    },
+    {
+        "label": "fmt_delta_colored",
+        "kind": 2,
+        "importPath": "commands.duckgame",
+        "description": "commands.duckgame",
+        "peekOfCode": "def fmt_delta_colored(after: float, before: float) -> str:\n    try:\n        delta = float(after) - float(before)\n        if delta >= 0:\n            return f\"🟢 (+${delta:,.2f})\"\n        else:\n            return f\"🔴 (-${abs(delta):,.2f})\"\n    except Exception:\n        return \"\"\n# --- Interaction ACK helper --------------------------------------------------",
         "detail": "commands.duckgame",
         "documentation": {}
     },
@@ -247,7 +300,7 @@
         "kind": 2,
         "importPath": "commands.duckgame",
         "description": "commands.duckgame",
-        "peekOfCode": "def load_bank():\n    if not os.path.exists(\"data/bank.json\"):\n        return {}\n    with open(\"data/bank.json\", \"r\") as f:\n        data = json.load(f)\n    # Ensure all users have wallet, bank, and game_active keys\n    for user_id, balances in data.items():\n        if not isinstance(balances, dict):\n            data[user_id] = {\"wallet\": float(balances), \"bank\": 0.0, \"game_active\": False}\n        else:",
+        "peekOfCode": "def load_bank():\n    if not os.path.exists(\"data/bank.json\"):\n        return {}\n    try:\n        with open(\"data/bank.json\", \"r\") as f:\n            data = json.load(f)\n    except Exception:\n        # If file is corrupt/empty, fall back to empty\n        return {}\n    # Ensure all users have wallet, bank, game_active, last_earn_ts keys",
         "detail": "commands.duckgame",
         "documentation": {}
     },
@@ -256,7 +309,34 @@
         "kind": 2,
         "importPath": "commands.duckgame",
         "description": "commands.duckgame",
-        "peekOfCode": "def update_bank(data):\n    with open(\"data/bank.json\", \"w\") as f:\n        json.dump(data, f, indent=4)\nclass DuckGameView(View):\n    def __init__(self, user, amount, wallet, multiplier, username):\n        super().__init__(timeout=None)\n        self.user = user\n        self.amount = float(amount)\n        self.position = -1  # Start duck in the grass\n        self.hazard_pos = None",
+        "peekOfCode": "def update_bank(data):\n    # Atomic write to avoid corruption on crashes\n    os.makedirs(\"data\", exist_ok=True)\n    _atomic_write_json(\"data/bank.json\", data)\n# -------------------- MODE SELECTION VIEW --------------------\nclass ModeSelectView(View):\n    \"\"\"Mode picker for Easy/Medium/Hard; transitions to the live game view.\"\"\"\n    def __init__(self, user, amount, wallet_after, username):\n        super().__init__(timeout=None)\n        self.user = user",
+        "detail": "commands.duckgame",
+        "documentation": {}
+    },
+    {
+        "label": "EARN_AMOUNT",
+        "kind": 5,
+        "importPath": "commands.duckgame",
+        "description": "commands.duckgame",
+        "peekOfCode": "EARN_AMOUNT = 20_000.0\nCOOLDOWN_SECONDS = 3600.0\nimport discord\nfrom discord.ui import View, Button\nfrom discord.ext import commands\nfrom discord.ext.commands import Cog\nfrom discord.ext.commands import Context\nfrom utils.image_generator import generate_duck_game_image\nfrom utils.rng import get_secure_hazard\nimport io",
+        "detail": "commands.duckgame",
+        "documentation": {}
+    },
+    {
+        "label": "COOLDOWN_SECONDS",
+        "kind": 5,
+        "importPath": "commands.duckgame",
+        "description": "commands.duckgame",
+        "peekOfCode": "COOLDOWN_SECONDS = 3600.0\nimport discord\nfrom discord.ui import View, Button\nfrom discord.ext import commands\nfrom discord.ext.commands import Cog\nfrom discord.ext.commands import Context\nfrom utils.image_generator import generate_duck_game_image\nfrom utils.rng import get_secure_hazard\nimport io\nimport json",
+        "detail": "commands.duckgame",
+        "documentation": {}
+    },
+    {
+        "label": "BANK_LOCK",
+        "kind": 5,
+        "importPath": "commands.duckgame",
+        "description": "commands.duckgame",
+        "peekOfCode": "BANK_LOCK = asyncio.Lock()\ndef _atomic_write_json(path: str, data: dict):\n    tmp_path = path + \".tmp\"\n    with open(tmp_path, \"w\") as f:\n        json.dump(data, f, indent=4)\n    # os.replace is atomic on POSIX; it overwrites the target\n    os.replace(tmp_path, path)\ndef load_bank():\n    if not os.path.exists(\"data/bank.json\"):\n        return {}",
         "detail": "commands.duckgame",
         "documentation": {}
     },
@@ -265,7 +345,7 @@
         "kind": 2,
         "importPath": "utils.assets",
         "description": "utils.assets",
-        "peekOfCode": "def get_duck_visual(position: int, max_length=5) -> discord.File:\n    base_width = 100\n    base_height = 100\n    image_width = base_width * (max_length + 1)\n    image_height = base_height + duck.height  # ensures full fit\n    frames = []\n    try:\n        duck_path = os.path.join(BASE_DIR, \"..\", \"assets\", \"duck_images\", \"duck.png\")\n        duck = Image.open(duck_path).convert(\"RGBA\").resize((base_width, base_height))\n    except FileNotFoundError:",
+        "peekOfCode": "def get_duck_visual(\n    position: int,\n    max_length: int = 5,\n    *,\n    hazard_pos: int = -1,\n    show_hazard: bool = True,\n    labels: Optional[List[str]] = None,\n    base_width: int = 100,\n    duck_scale: float = 1.0,\n    car_scale: float = 0.5,",
         "detail": "utils.assets",
         "documentation": {}
     },
@@ -274,7 +354,52 @@
         "kind": 5,
         "importPath": "utils.assets",
         "description": "utils.assets",
-        "peekOfCode": "BASE_DIR = os.path.dirname(os.path.abspath(__file__))\ndef get_duck_visual(position: int, max_length=5) -> discord.File:\n    base_width = 100\n    base_height = 100\n    image_width = base_width * (max_length + 1)\n    image_height = base_height + duck.height  # ensures full fit\n    frames = []\n    try:\n        duck_path = os.path.join(BASE_DIR, \"..\", \"assets\", \"duck_images\", \"duck.png\")\n        duck = Image.open(duck_path).convert(\"RGBA\").resize((base_width, base_height))",
+        "peekOfCode": "BASE_DIR = os.path.dirname(os.path.abspath(__file__))\nASSETS_DIR = os.path.join(BASE_DIR, \"..\", \"assets\")\nROAD_DIR = os.path.join(ASSETS_DIR, \"road\")\nDUCK_DIR = os.path.join(ASSETS_DIR, \"duck_images\")\nOUTPUT_DIR = os.path.join(ASSETS_DIR, \"output\")\n# Simple image cache to avoid reloading from disk repeatedly\n_IMG_CACHE = {}\ndef _load_img(path: str) -> Image.Image:\n    abspath = os.path.abspath(path)\n    if abspath in _IMG_CACHE:",
+        "detail": "utils.assets",
+        "documentation": {}
+    },
+    {
+        "label": "ASSETS_DIR",
+        "kind": 5,
+        "importPath": "utils.assets",
+        "description": "utils.assets",
+        "peekOfCode": "ASSETS_DIR = os.path.join(BASE_DIR, \"..\", \"assets\")\nROAD_DIR = os.path.join(ASSETS_DIR, \"road\")\nDUCK_DIR = os.path.join(ASSETS_DIR, \"duck_images\")\nOUTPUT_DIR = os.path.join(ASSETS_DIR, \"output\")\n# Simple image cache to avoid reloading from disk repeatedly\n_IMG_CACHE = {}\ndef _load_img(path: str) -> Image.Image:\n    abspath = os.path.abspath(path)\n    if abspath in _IMG_CACHE:\n        return _IMG_CACHE[abspath]",
+        "detail": "utils.assets",
+        "documentation": {}
+    },
+    {
+        "label": "ROAD_DIR",
+        "kind": 5,
+        "importPath": "utils.assets",
+        "description": "utils.assets",
+        "peekOfCode": "ROAD_DIR = os.path.join(ASSETS_DIR, \"road\")\nDUCK_DIR = os.path.join(ASSETS_DIR, \"duck_images\")\nOUTPUT_DIR = os.path.join(ASSETS_DIR, \"output\")\n# Simple image cache to avoid reloading from disk repeatedly\n_IMG_CACHE = {}\ndef _load_img(path: str) -> Image.Image:\n    abspath = os.path.abspath(path)\n    if abspath in _IMG_CACHE:\n        return _IMG_CACHE[abspath]\n    img = Image.open(abspath).convert(\"RGBA\")",
+        "detail": "utils.assets",
+        "documentation": {}
+    },
+    {
+        "label": "DUCK_DIR",
+        "kind": 5,
+        "importPath": "utils.assets",
+        "description": "utils.assets",
+        "peekOfCode": "DUCK_DIR = os.path.join(ASSETS_DIR, \"duck_images\")\nOUTPUT_DIR = os.path.join(ASSETS_DIR, \"output\")\n# Simple image cache to avoid reloading from disk repeatedly\n_IMG_CACHE = {}\ndef _load_img(path: str) -> Image.Image:\n    abspath = os.path.abspath(path)\n    if abspath in _IMG_CACHE:\n        return _IMG_CACHE[abspath]\n    img = Image.open(abspath).convert(\"RGBA\")\n    _IMG_CACHE[abspath] = img",
+        "detail": "utils.assets",
+        "documentation": {}
+    },
+    {
+        "label": "OUTPUT_DIR",
+        "kind": 5,
+        "importPath": "utils.assets",
+        "description": "utils.assets",
+        "peekOfCode": "OUTPUT_DIR = os.path.join(ASSETS_DIR, \"output\")\n# Simple image cache to avoid reloading from disk repeatedly\n_IMG_CACHE = {}\ndef _load_img(path: str) -> Image.Image:\n    abspath = os.path.abspath(path)\n    if abspath in _IMG_CACHE:\n        return _IMG_CACHE[abspath]\n    img = Image.open(abspath).convert(\"RGBA\")\n    _IMG_CACHE[abspath] = img\n    return img",
+        "detail": "utils.assets",
+        "documentation": {}
+    },
+    {
+        "label": "_IMG_CACHE",
+        "kind": 5,
+        "importPath": "utils.assets",
+        "description": "utils.assets",
+        "peekOfCode": "_IMG_CACHE = {}\ndef _load_img(path: str) -> Image.Image:\n    abspath = os.path.abspath(path)\n    if abspath in _IMG_CACHE:\n        return _IMG_CACHE[abspath]\n    img = Image.open(abspath).convert(\"RGBA\")\n    _IMG_CACHE[abspath] = img\n    return img\ndef get_duck_visual(\n    position: int,",
         "detail": "utils.assets",
         "documentation": {}
     },
@@ -283,7 +408,7 @@
         "kind": 2,
         "importPath": "utils.bank",
         "description": "utils.bank",
-        "peekOfCode": "def load_bank():\n    if not os.path.exists(BANK_FILE):\n        with open(BANK_FILE, \"w\") as f:\n            json.dump({}, f)\n    with open(BANK_FILE, \"r\") as f:\n        return json.load(f)\ndef save_bank(bank):\n    with open(BANK_FILE, \"w\") as f:\n        json.dump(bank, f, indent=4)\ndef get_balance(user_id):",
+        "peekOfCode": "def load_bank() -> dict:\n    _ensure_dir_and_file()\n    with _LOCK:\n        try:\n            with open(BANK_FILE, \"r\") as f:\n                data = json.load(f)\n                if not isinstance(data, dict):\n                    return {}\n                return data\n        except Exception:",
         "detail": "utils.bank",
         "documentation": {}
     },
@@ -292,7 +417,7 @@
         "kind": 2,
         "importPath": "utils.bank",
         "description": "utils.bank",
-        "peekOfCode": "def save_bank(bank):\n    with open(BANK_FILE, \"w\") as f:\n        json.dump(bank, f, indent=4)\ndef get_balance(user_id):\n    bank = load_bank()\n    balance = bank.get(str(user_id), 1000.0)\n    print(f\"[DEBUG] get_balance: User {user_id} has ${balance}\")\n    return balance\ndef update_balance(user_id, amount):\n    bank = load_bank()",
+        "peekOfCode": "def save_bank(bank: dict) -> None:\n    _ensure_dir_and_file()\n    with _LOCK:\n        _atomic_write_json(BANK_FILE, bank)\ndef get_balance(user_id) -> float:\n    \"\"\"Return the simple balance for a user (legacy single-balance schema).\"\"\"\n    uid = str(user_id)\n    with _LOCK:\n        bank = load_bank()\n        return float(bank.get(uid, _DEFAULT_BAL))",
         "detail": "utils.bank",
         "documentation": {}
     },
@@ -301,7 +426,16 @@
         "kind": 2,
         "importPath": "utils.bank",
         "description": "utils.bank",
-        "peekOfCode": "def get_balance(user_id):\n    bank = load_bank()\n    balance = bank.get(str(user_id), 1000.0)\n    print(f\"[DEBUG] get_balance: User {user_id} has ${balance}\")\n    return balance\ndef update_balance(user_id, amount):\n    bank = load_bank()\n    user_id = str(user_id)\n    bank[user_id] = bank.get(user_id, 1000.0) + amount\n    save_bank(bank)",
+        "peekOfCode": "def get_balance(user_id) -> float:\n    \"\"\"Return the simple balance for a user (legacy single-balance schema).\"\"\"\n    uid = str(user_id)\n    with _LOCK:\n        bank = load_bank()\n        return float(bank.get(uid, _DEFAULT_BAL))\ndef set_balance(user_id, new_amount: float) -> None:\n    \"\"\"Set (overwrite) a user's balance. Never writes a negative value below 0.\"\"\"\n    uid = str(user_id)\n    if new_amount < 0:",
+        "detail": "utils.bank",
+        "documentation": {}
+    },
+    {
+        "label": "set_balance",
+        "kind": 2,
+        "importPath": "utils.bank",
+        "description": "utils.bank",
+        "peekOfCode": "def set_balance(user_id, new_amount: float) -> None:\n    \"\"\"Set (overwrite) a user's balance. Never writes a negative value below 0.\"\"\"\n    uid = str(user_id)\n    if new_amount < 0:\n        new_amount = 0.0\n    with _LOCK:\n        bank = load_bank()\n        bank[uid] = float(new_amount)\n        save_bank(bank)\ndef update_balance(user_id, amount: float, *, allow_negative: bool = False, floor: float = 0.0) -> Tuple[bool, float]:",
         "detail": "utils.bank",
         "documentation": {}
     },
@@ -310,7 +444,7 @@
         "kind": 2,
         "importPath": "utils.bank",
         "description": "utils.bank",
-        "peekOfCode": "def update_balance(user_id, amount):\n    bank = load_bank()\n    user_id = str(user_id)\n    bank[user_id] = bank.get(user_id, 1000.0) + amount\n    save_bank(bank)\n    print(f\"[DEBUG] update_balance: User {user_id} new balance is ${bank[user_id]}\")",
+        "peekOfCode": "def update_balance(user_id, amount: float, *, allow_negative: bool = False, floor: float = 0.0) -> Tuple[bool, float]:\n    \"\"\"\n    Increment a user's balance by `amount`.\n    Returns (ok, new_balance).\n      - If `allow_negative` is False and the operation would drop the balance below `floor`,\n        the update is aborted and (False, current_balance) is returned.\n      - Otherwise, updates the stored balance atomically and returns (True, new_balance).\n    \"\"\"\n    uid = str(user_id)\n    with _LOCK:",
         "detail": "utils.bank",
         "documentation": {}
     },
@@ -319,7 +453,25 @@
         "kind": 5,
         "importPath": "utils.bank",
         "description": "utils.bank",
-        "peekOfCode": "BANK_FILE = \"data/bank.json\"\ndef load_bank():\n    if not os.path.exists(BANK_FILE):\n        with open(BANK_FILE, \"w\") as f:\n            json.dump({}, f)\n    with open(BANK_FILE, \"r\") as f:\n        return json.load(f)\ndef save_bank(bank):\n    with open(BANK_FILE, \"w\") as f:\n        json.dump(bank, f, indent=4)",
+        "peekOfCode": "BANK_FILE = \"data/bank.json\"\n_DEFAULT_BAL = 1000.0\n# Thread-safe lock for concurrent access from multiple commands\n_LOCK = threading.RLock()\ndef _ensure_dir_and_file():\n    os.makedirs(os.path.dirname(BANK_FILE) or \".\", exist_ok=True)\n    if not os.path.exists(BANK_FILE):\n        with open(BANK_FILE, \"w\") as f:\n            json.dump({}, f)\ndef _atomic_write_json(path: str, data: dict):",
+        "detail": "utils.bank",
+        "documentation": {}
+    },
+    {
+        "label": "_DEFAULT_BAL",
+        "kind": 5,
+        "importPath": "utils.bank",
+        "description": "utils.bank",
+        "peekOfCode": "_DEFAULT_BAL = 1000.0\n# Thread-safe lock for concurrent access from multiple commands\n_LOCK = threading.RLock()\ndef _ensure_dir_and_file():\n    os.makedirs(os.path.dirname(BANK_FILE) or \".\", exist_ok=True)\n    if not os.path.exists(BANK_FILE):\n        with open(BANK_FILE, \"w\") as f:\n            json.dump({}, f)\ndef _atomic_write_json(path: str, data: dict):\n    tmp_path = path + \".tmp\"",
+        "detail": "utils.bank",
+        "documentation": {}
+    },
+    {
+        "label": "_LOCK",
+        "kind": 5,
+        "importPath": "utils.bank",
+        "description": "utils.bank",
+        "peekOfCode": "_LOCK = threading.RLock()\ndef _ensure_dir_and_file():\n    os.makedirs(os.path.dirname(BANK_FILE) or \".\", exist_ok=True)\n    if not os.path.exists(BANK_FILE):\n        with open(BANK_FILE, \"w\") as f:\n            json.dump({}, f)\ndef _atomic_write_json(path: str, data: dict):\n    tmp_path = path + \".tmp\"\n    with open(tmp_path, \"w\") as f:\n        json.dump(data, f, indent=4)",
         "detail": "utils.bank",
         "documentation": {}
     },
@@ -328,7 +480,16 @@
         "kind": 2,
         "importPath": "utils.image_generator",
         "description": "utils.image_generator",
-        "peekOfCode": "def generate_duck_game_image(position: int, hazard_pos: int, previous_positions: List[int]) -> Image.Image:\n    \"\"\"\n    Generate a horizontal scene: [GRASS] [LANE0] [LANE1] [LANE2] [LANE3] [LANE4] [EXTRA PAD]\n    - position: -1 for grass start, 0..4 for lane index, >=5 means passed final lane (draw on extra pad)\n    - hazard_pos: 0..4 for the lane containing the car hazard; outside that range -> no car\n    - previous_positions: unused here (kept for signature compatibility)\n    \"\"\"\n    # Load images\n    road = Image.open(\"assets/road/road.png\").convert(\"RGBA\")\n    grass = Image.open(\"assets/road/Grass.png\").convert(\"RGBA\")",
+        "peekOfCode": "def generate_duck_game_image(\n    position: int,\n    hazard_pos: int,\n    previous_positions: List[int],\n    *,\n    total_slots: int = 5,\n    show_hazard: bool = True,\n) -> Image.Image:\n    \"\"\"\n    Generate a horizontal scene with variable lanes and a finish tile:",
+        "detail": "utils.image_generator",
+        "documentation": {}
+    },
+    {
+        "label": "_IMG_CACHE",
+        "kind": 5,
+        "importPath": "utils.image_generator",
+        "description": "utils.image_generator",
+        "peekOfCode": "_IMG_CACHE = {}\ndef _load_img(path: str) -> Image.Image:\n    if path in _IMG_CACHE:\n        return _IMG_CACHE[path]\n    img = Image.open(path).convert(\"RGBA\")\n    _IMG_CACHE[path] = img\n    return img\ndef generate_duck_game_image(\n    position: int,\n    hazard_pos: int,",
         "detail": "utils.image_generator",
         "documentation": {}
     },
@@ -337,17 +498,26 @@
         "kind": 2,
         "importPath": "utils.rng",
         "description": "utils.rng",
-        "peekOfCode": "def get_secure_hazard():\n    try:\n        hazard = secrets.randbelow(5)  # 0 to 4 inclusive\n        print(f\"[DEBUG] Secure hazard generated (Python): {hazard}\")\n        return hazard\n    except Exception as e:\n        print(f\"[ERROR] Failed to generate secure hazard: {e}\")\n        return 0  # Safe fallback",
+        "peekOfCode": "def get_secure_hazard(total_lanes: int = 5) -> int:\n    \"\"\"\n    Return a cryptographically secure hazard lane index in [0, total_lanes-1].\n    This is lane-count aware so it works for all modes:\n      - Easy   -> total_lanes = 7\n      - Medium -> total_lanes = 5\n      - Hard   -> total_lanes = 3\n    Notes:\n    - The finish lane is NOT part of this range. Callers should treat the\n      finish (with graphic at /assets/road/end.png) as the lane AFTER the",
         "detail": "utils.rng",
         "documentation": {}
     },
     {
-        "label": "generate_duck_game_image",
-        "kind": 2,
+        "label": "DuckGameView",
+        "kind": 6,
         "importPath": "views.duck_view",
         "description": "views.duck_view",
-        "peekOfCode": "def generate_duck_game_image(position, hazard, duck_path, car_path, road_path, grass_path, bank=0, multiplier=1, save=False, game_started=False):\n    tile_width = 150\n    tile_height = 200\n    steps = 6\n    total_width = tile_width * steps\n    total_height = tile_height + 100  # Further increased for full canvas visibility\n    background = Image.new(\"RGBA\", (total_width, total_height), (0, 0, 0, 255))\n    try:\n        road_tile = Image.open(road_path).resize((tile_width, tile_height))\n    except Exception as e:",
+        "peekOfCode": "class DuckGameView(...):\n    def __init__(self, ..., start_position=-1):\n        ...\n        self.position = start_position\n        # Controls: only Forward on grass (-1); add Stop once on first lane or beyond\n        self.forward_button = Button(label=\"Forward\", style=discord.ButtonStyle.success)\n        self.forward_button.callback = self.forward_button_callback\n        self.add_item(self.forward_button)\n        self.stop_button = Button(label=\"Stop\", style=discord.ButtonStyle.danger)\n        self.stop_button.callback = self.stop_button_callback",
         "detail": "views.duck_view",
+        "documentation": {}
+    },
+    {
+        "label": "log",
+        "kind": 5,
+        "importPath": "bot",
+        "description": "bot",
+        "peekOfCode": "log = logging.getLogger(\"duckbot\")\n# Load token from .env (expects DISCORD_TOKEN=...)\nload_dotenv()\nTOKEN = os.getenv(\"DISCORD_TOKEN\")\nANNOUNCE_CHANNEL_ID = 1403244656845787170  # optional announce channel\nif not TOKEN:\n    raise RuntimeError(\"DISCORD_TOKEN is missing. Put it in a .env file or environment variable.\")\n# Intents\nintents = discord.Intents.default()\nintents.message_content = True  # needs to be enabled in Dev Portal for your bot",
+        "detail": "bot",
         "documentation": {}
     },
     {
@@ -355,7 +525,16 @@
         "kind": 5,
         "importPath": "bot",
         "description": "bot",
-        "peekOfCode": "TOKEN = os.getenv(\"DISCORD_TOKEN\")\nintents = discord.Intents.default()\nintents.message_content = True\nbot = commands.Bot(command_prefix=\"!\", intents=intents)\nbot.remove_command(\"help\")\n@bot.event\nasync def on_ready():\n    print(f\"✅ Logged in as {bot.user} (ID: {bot.user.id})\")\n    channel = bot.get_channel(1403244656845787170)\n    if channel:",
+        "peekOfCode": "TOKEN = os.getenv(\"DISCORD_TOKEN\")\nANNOUNCE_CHANNEL_ID = 1403244656845787170  # optional announce channel\nif not TOKEN:\n    raise RuntimeError(\"DISCORD_TOKEN is missing. Put it in a .env file or environment variable.\")\n# Intents\nintents = discord.Intents.default()\nintents.message_content = True  # needs to be enabled in Dev Portal for your bot\nintents.members = True\n# Bot instance\nbot = commands.Bot(command_prefix=\"!\", intents=intents)",
+        "detail": "bot",
+        "documentation": {}
+    },
+    {
+        "label": "ANNOUNCE_CHANNEL_ID",
+        "kind": 5,
+        "importPath": "bot",
+        "description": "bot",
+        "peekOfCode": "ANNOUNCE_CHANNEL_ID = 1403244656845787170  # optional announce channel\nif not TOKEN:\n    raise RuntimeError(\"DISCORD_TOKEN is missing. Put it in a .env file or environment variable.\")\n# Intents\nintents = discord.Intents.default()\nintents.message_content = True  # needs to be enabled in Dev Portal for your bot\nintents.members = True\n# Bot instance\nbot = commands.Bot(command_prefix=\"!\", intents=intents)\n# If you override help elsewhere",
         "detail": "bot",
         "documentation": {}
     },
@@ -364,7 +543,7 @@
         "kind": 5,
         "importPath": "bot",
         "description": "bot",
-        "peekOfCode": "intents = discord.Intents.default()\nintents.message_content = True\nbot = commands.Bot(command_prefix=\"!\", intents=intents)\nbot.remove_command(\"help\")\n@bot.event\nasync def on_ready():\n    print(f\"✅ Logged in as {bot.user} (ID: {bot.user.id})\")\n    channel = bot.get_channel(1403244656845787170)\n    if channel:\n        await channel.send(\"🟢 Duck Game Bot is now online!\")",
+        "peekOfCode": "intents = discord.Intents.default()\nintents.message_content = True  # needs to be enabled in Dev Portal for your bot\nintents.members = True\n# Bot instance\nbot = commands.Bot(command_prefix=\"!\", intents=intents)\n# If you override help elsewhere\nbot.remove_command(\"help\")\n_has_announced = False\n@bot.event\nasync def on_ready():",
         "detail": "bot",
         "documentation": {}
     },
@@ -373,7 +552,16 @@
         "kind": 5,
         "importPath": "bot",
         "description": "bot",
-        "peekOfCode": "intents.message_content = True\nbot = commands.Bot(command_prefix=\"!\", intents=intents)\nbot.remove_command(\"help\")\n@bot.event\nasync def on_ready():\n    print(f\"✅ Logged in as {bot.user} (ID: {bot.user.id})\")\n    channel = bot.get_channel(1403244656845787170)\n    if channel:\n        await channel.send(\"🟢 Duck Game Bot is now online!\")\nasync def main():",
+        "peekOfCode": "intents.message_content = True  # needs to be enabled in Dev Portal for your bot\nintents.members = True\n# Bot instance\nbot = commands.Bot(command_prefix=\"!\", intents=intents)\n# If you override help elsewhere\nbot.remove_command(\"help\")\n_has_announced = False\n@bot.event\nasync def on_ready():\n    global _has_announced",
+        "detail": "bot",
+        "documentation": {}
+    },
+    {
+        "label": "intents.members",
+        "kind": 5,
+        "importPath": "bot",
+        "description": "bot",
+        "peekOfCode": "intents.members = True\n# Bot instance\nbot = commands.Bot(command_prefix=\"!\", intents=intents)\n# If you override help elsewhere\nbot.remove_command(\"help\")\n_has_announced = False\n@bot.event\nasync def on_ready():\n    global _has_announced\n    log.info(\"Logged in as %s (ID: %s)\", bot.user, bot.user.id)",
         "detail": "bot",
         "documentation": {}
     },
@@ -382,7 +570,16 @@
         "kind": 5,
         "importPath": "bot",
         "description": "bot",
-        "peekOfCode": "bot = commands.Bot(command_prefix=\"!\", intents=intents)\nbot.remove_command(\"help\")\n@bot.event\nasync def on_ready():\n    print(f\"✅ Logged in as {bot.user} (ID: {bot.user.id})\")\n    channel = bot.get_channel(1403244656845787170)\n    if channel:\n        await channel.send(\"🟢 Duck Game Bot is now online!\")\nasync def main():\n    from commands import duckgame",
+        "peekOfCode": "bot = commands.Bot(command_prefix=\"!\", intents=intents)\n# If you override help elsewhere\nbot.remove_command(\"help\")\n_has_announced = False\n@bot.event\nasync def on_ready():\n    global _has_announced\n    log.info(\"Logged in as %s (ID: %s)\", bot.user, bot.user.id)\n    # Avoid announcing multiple times on reconnects\n    if _has_announced:",
+        "detail": "bot",
+        "documentation": {}
+    },
+    {
+        "label": "_has_announced",
+        "kind": 5,
+        "importPath": "bot",
+        "description": "bot",
+        "peekOfCode": "_has_announced = False\n@bot.event\nasync def on_ready():\n    global _has_announced\n    log.info(\"Logged in as %s (ID: %s)\", bot.user, bot.user.id)\n    # Avoid announcing multiple times on reconnects\n    if _has_announced:\n        return\n    channel = bot.get_channel(ANNOUNCE_CHANNEL_ID)\n    if channel is None:",
         "detail": "bot",
         "documentation": {}
     }
